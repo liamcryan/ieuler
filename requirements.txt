@@ -1,0 +1,4 @@
+Pillow
+requests_html
+pytest
+vcrpy

@@ -1,0 +1,59 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Connection: [keep-alive]
+      User-Agent: ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8
+          (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8']
+    method: GET
+    uri: https://projecteuler.net/problem=1
+  response:
+    body:
+      string: !!binary |
+        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
+    headers:
+      Accept-Ranges: [none]
+      Cache-Control: ['no-store, no-cache, must-revalidate']
+      Connection: [close]
+      Content-Encoding: [gzip]
+      Content-Length: ['1590']
+      Content-Type: [text/html; charset=UTF-8]
+      Date: ['Wed, 23 Jan 2019 05:52:28 GMT']
+      Expires: ['Thu, 19 Nov 1981 08:52:00 GMT']
+      Pragma: [no-cache]
+      Server: [Apache]
+      Set-Cookie: [PHPSESSID=c3e7ae3f07a038d67b6f66e7c7029b25; path=/; HttpOnly, PHPSESSID=c3e7ae3f07a038d67b6f66e7c7029b25;
+          path=/; secure; HttpOnly, DYNSRV=lin-10-170-0-45; path=/]
+      Vary: ['Accept-Encoding,User-Agent']
+      X-Frame-Options: [DENY]
+    status: {code: 200, message: OK}
+version: 1
