@@ -50,7 +50,7 @@ Each template contains a function called answer and you should not change its na
 submit our answer to project euler, the answer function will be called, and the value that is returned will be
 submitted.  Here is what that looks like (go back to the python console)::
 
-    >>> problem_1.submit(guess=p1)
+    >>> problem_1.submit()
 
 Now, you have submitted your answer to project euler.  If you have the correct answer, then you will get a
 certificate.  A file called problem_1_certificate.html will be saved with your congratulations.
