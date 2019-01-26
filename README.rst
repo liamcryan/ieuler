@@ -19,6 +19,7 @@ In your working directory, create a 'problems' folder and a 'certificates' folde
     > ieuler edit 1
 
 A Notepad opens the template file which looks like this::
+
     """
 
     name:
