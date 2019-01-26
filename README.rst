@@ -9,48 +9,48 @@ ___________
 
 The idea behind this library is to work on project euler problems while being near to your programming environment.
 
-Currently, you interact via the Python Console.  Plans for terminal will be next.
+Terminal
+________
 
-If you know the problem you want to work on, you can create a template file in your working directory containing
-the problem details like this:::
+In your working directory, create a 'problems' folder and a 'certificates' folder.  Then follow along::
 
-    >>> import ieuler
-    >>> problem_1 = ieuler.start(problem_number=1)
+    > ieuler template 1
+    template for problem 1 is here: problems\problem_1.py
+    > ieuler edit 1
 
-
-A file called problem_1.py will be created for you to begin solving.  The file has the problem content so you know
-what the actual problem is.  Also, your file won't get overwritten if you call euler.get with problem number 1 again.
-
-Let's suppose you go to problem_1.py and fill out the function answer in the template like this::
-
-    def answer():
-    """ The answer to Problem 1: Multiples of 3 and 5.
-
-    Solve the problem here!
-
-    :return: your answer
+A Notepad opens the template file which looks like this::
     """
 
-    def series():
-        # this is not the answer to this problem :)
-        v = 0
-        while True:
-            yield v
-            v += 1
+    name:
+    Multiples of 3 and 5
 
-    total = 0
-    for i in series():
-        if i >= 1000:
-            break
-        total += i
+    content:
+    If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.
+    Find the sum of all the multiples of 3 or 5 below 1000.
 
-    return total
+    """
 
-Each template contains a function called answer and you should not change its name.  This is because if we want to
-submit our answer to project euler, the answer function will be called, and the value that is returned will be
-submitted.  Here is what that looks like (go back to the python console)::
 
-    >>> problem_1.submit()
+    def answer():
+        """ The answer to Problem 1: Multiples of 3 and 5.
 
-Now, you have submitted your answer to project euler.  If you have the correct answer, then you will get a
-certificate.  A file called problem_1_certificate.html will be saved with your congratulations.
+        Solve the problem here!
+
+        :return: your answer
+        """
+        return
+
+
+    if __name__ == "__main__":
+        """ You can test your code here, just run or debug this file! """
+        print(answer())
+
+
+Well, now, if you want to submit your answer to project euler, how about editing the file and return 10000.  Then save
+the file.  Back at the terminal::
+
+    > ieuler submit 1
+
+You will be prompted to input your username, password, and a couple of captcha codes.  10000 is not the answer, and
+you will see the project euler message saying so on the console.  If you submit the correct answer, a html page
+will be saved in your 'certificates' directory.

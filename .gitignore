@@ -2,5 +2,8 @@ __pycache__/
 .idea/
 venv/
 .pytest_cache/
-ieuler/problems/problem_1.py
-ieuler/certificates/problem_1_certificate.html
+*.egg-info/
+ieuler/problems/
+ieuler/certificates/
+problems/
+certificates/

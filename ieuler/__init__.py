@@ -1,3 +1,4 @@
+import getpass
 import io
 import importlib
 import os
@@ -8,18 +9,19 @@ import warnings
 from PIL import Image
 from requests_html import HTMLSession, HTML
 
-__all__ = ('start', 'Euler', 'Submission')
+__all__ = ('template', 'Euler', 'Certification')
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 
-def start(problem_number: int) -> 'Euler':
+def template(problem_number: int, problem_directory: str) -> 'Euler':
     """ Gets the problem details from project ieuler and creates a template file.
 
     :param problem_number: the problem number you want to tackle
+    :param problem_directory: the directory you would like to keep your problems
     :return: an instance of 'Euler'
     """
-    p = Euler(problem_number)
+    p = Euler(problem_number, problem_directory)
     p.get()
     p.template()
     return p
@@ -33,15 +35,23 @@ class CaptchaAttemptsExceeded(Exception):
     pass
 
 
-class Submission(object):
-    DIRECTORY = 'certificates'
+class PasswordAttemptsExceeded(Exception):
+    pass
 
-    def __init__(self, html: HTML):
+
+class InvalidUsername(Exception):
+    pass
+
+
+class Certification(object):
+
+    def __init__(self, html: HTML, directory: str = None):
         p1_text = html.find('p', first=True).text
         self.status = True if 'Congratulations' in p1_text else False
         self.message = '\n'.join((_.text for _ in html.find('p') if _.text != 'Return to Problems page.'))
         self.number = int(re.search('([0-9]+)', self.message).group())
         self.html_page = html
+        self.directory = directory
 
     def _module_name(self):
         return 'problem_{}_certificate'.format(self.number)
@@ -50,22 +60,21 @@ class Submission(object):
         return '{}.html'.format(self._module_name())
 
     def _f_path(self):
-        return self.DIRECTORY
+        return self.directory
 
-    def _file(self):
+    def file(self):
         return os.path.join(self._f_path(), self._f_name())
 
     @staticmethod
     def _base(b_html: bytes) -> bytes:
         """ inject the base tag within the <head> tag -> <base href="https://www.projecteuler.net"/> """
-        return b_html[:b_html.find(b'<head>\r\n') + 8] + b'<base href="https://projecteuler.net"/>' + b_html[
-                                                                                                      b_html.find(
-                                                                                                          b'<head>\r\n') + 8:]
+        return b_html[:b_html.find(
+            b'<head>\r\n') + 8] + b'<base href="https://projecteuler.net"/>' + b_html[b_html.find(b'<head>\r\n') + 8:]
 
     def certify(self):
         if self.status:
             try:
-                with open(self._file(), 'wb') as f:
+                with open(self.file(), 'wb') as f:
                     f.write(self._base(self.html_page.raw_html))
             except FileNotFoundError:
                 os.makedirs(self._f_path())
@@ -75,30 +84,30 @@ class Submission(object):
 
 
 class Euler(object):
-    DIRECTORY = 'problems'
 
-    def __init__(self, number: int):
+    def __init__(self, number: int, directory: str = None):
         self.number = number
         self.name = None
         self.content = None
         self.session = None
         self.logged_in = False
-        self.submission = None
+        self.certification = None
+        self.directory = directory
 
     def _module_name(self):
         return 'problem_{}'.format(self.number)
 
     def _f_path(self):
-        return self.DIRECTORY
+        return self.directory
 
     def _f_name(self):
         return '{}.py'.format(self._module_name())
 
-    def _file(self):
+    def file(self):
         return os.path.join(self._f_path(), self._f_name())
 
     def _f_exists(self):
-        if os.path.exists(self._file()):
+        if os.path.exists(self.file()):
             return True
 
     def _problem_url(self):
@@ -110,14 +119,10 @@ class Euler(object):
             self.session.verify = False
 
     def get(self):
-        """ Gets the problem information from project ieuler if necessary. """
+        """ Gets the problem information from local file or project euler. """
         self._initialize_session()
         try:
-            with open(self._file(), 'rt') as f:
-                contents = f.read()
-            self.name = contents[contents.find('name:\n') + 6:contents.find('\n\ncontent')]
-            self.content = contents[contents.find('content:\n') + 9: contents.find('\n\n"""')]
-
+            self.open_template()
         except FileNotFoundError:
             url = self._problem_url()
             r = self.session.get(url)
@@ -128,11 +133,17 @@ class Euler(object):
             self.name = r.html.find('h2', first=True).text
             self.content = '\n'.join(_.text for _ in r.html.find('p'))
 
-    def submit(self):
+    def open_template(self):
+        with open(self.file(), 'rt') as f:
+            contents = f.read()
+        self.name = contents[contents.find('name:\n') + 6:contents.find('\n\ncontent')]
+        self.content = contents[contents.find('content:\n') + 9: contents.find('\n\n"""')]
+
+    def submit(self, certificate_directory):
         """ Submit the answer to project ieuler, requires logging in. """
         answer = self.answer()
-        self.post(answer)
-        self.submission.certify()
+        self.post(answer=answer, certificate_directory=certificate_directory)
+        self.certification.certify()
 
     def _captcha(self, _id: str):
         """ a fun project will be to interpret the captcha from bytes so the user doesn't need to enter it """
@@ -146,9 +157,11 @@ class Euler(object):
     @staticmethod
     def _input(prompt):
         """ alias for built in input function -> facilitates testing"""
+        if 'password' in prompt:
+            return getpass.getpass(prompt)
         return input(prompt)
 
-    def _log_in(self, captcha_attempts: int = 3) -> None:
+    def _log_in(self, captcha_attempts: int = 3, password_attempts: int = 3) -> None:
         """ Log in to project ieuler.
 
         Needed when submitting answers.
@@ -156,13 +169,15 @@ class Euler(object):
         :param captcha_attempts: number of attempts before raising exception
         :return: None
         """
+        user_prompt = 'enter your project ieuler username: '
+        pass_prompt = 'enter your project ieuler password: '
         if self.logged_in:
             return
         self._initialize_session()
-        username = self._input('enter your project ieuler username: ')
-        password = self._input('enter your project ieuler password: ')
+        username = self._input(user_prompt)
+        password = self._input(pass_prompt)
 
-        while captcha_attempts > 0:
+        while captcha_attempts > 0 and password_attempts > 0:
             captcha = self._captcha('sign in')
             r = self.session.post('https://projecteuler.net/sign_in', data={'username': username,
                                                                             'password': password,
@@ -173,19 +188,30 @@ class Euler(object):
                 break  # good, you are logged in
             else:
                 message = r.html.find('#message', first=True).text
-                warnings.warn(message + '\nLet"s try again.')
-                captcha_attempts -= 1
+                warnings.warn(message)
+                if message == 'Sign In Failed':
+                    password = self._input(pass_prompt)
+                    password_attempts += 1
+                elif message == 'Username not known':
+                    raise InvalidUsername(message)
+                elif message == 'You did not enter the confirmation code':
+                    captcha_attempts -= 1
         else:
-            raise CaptchaAttemptsExceeded('Too many attempts to get the captcha correct, unable to login')
+            if captcha_attempts == 0:
+                raise CaptchaAttemptsExceeded(
+                    'Too many attempts to get the captcha correct. Limit is: {}'.format(captcha_attempts))
+            elif password_attempts == 0:
+                raise PasswordAttemptsExceeded(
+                    'Too many attempts to get the password correct. Limit is: {}'.format(password_attempts))
 
-    def post(self, answer):
+    def post(self, answer, certificate_directory: str = None):
         """ Posts the problem answer to project ieuler.  Requires logging in. """
 
         self._log_in()
         captcha = self._captcha('submit')
         data = {'guess_1': answer, 'captcha': captcha}
         r = self.session.post(self._problem_url(), data=data)
-        self.submission = Submission(html=r.html)
+        self.certification = Certification(html=r.html, directory=certificate_directory)
 
     def template(self):
         """ Creates the template for the problem if one does not exist. """
@@ -223,7 +249,7 @@ class Euler(object):
             return
 
         try:
-            with open(self._file(), 'wt') as f:
+            with open(self.file(), 'wt') as f:
                 f.write(code)
         except FileNotFoundError:
             os.makedirs(self._f_path())
@@ -246,5 +272,5 @@ class Euler(object):
 
 
 if __name__ == '__main__':
-    problem_1 = start(problem_number=1)
-    problem_1.submit()
+    problem_1 = template(problem_number=1, problem_directory='problems')
+    problem_1.submit(certificate_directory='certificates')
