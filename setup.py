@@ -16,8 +16,7 @@ setup(name='ieuler',
       long_description=readme,
       author='Liam Cryan',
       author_email='cryan.liam@gmail.com',
-      packages=find_packages(),
-      py_modules=['cli'],
+      py_modules=['ieuler', 'cli', 'web'],
       entry_points='''
             [console_scripts]
             ieuler=cli:cli

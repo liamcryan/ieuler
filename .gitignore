@@ -1,8 +1,15 @@
-__pycache__/
-.idea/
 venv/
+.idea/
+
+__pycache__/
+
 .pytest_cache/
+
+dist/
+build/
 *.egg-info/
+
+
 ieuler/problems/
 ieuler/certificates/
 problems/

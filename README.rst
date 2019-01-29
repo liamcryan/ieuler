@@ -55,3 +55,8 @@ the file.  Back at the terminal::
 You will be prompted to input your username, password, and a couple of captcha codes.  10000 is not the answer, and
 you will see the project euler message saying so on the console.  If you submit the correct answer, a html page
 will be saved in your 'certificates' directory.
+
+Status
+______
+
+Working on a single page web app where a person can work on euler problems interactively.

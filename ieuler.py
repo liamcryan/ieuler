@@ -22,6 +22,7 @@ def template(problem_number: int, problem_directory: str) -> 'Euler':
     :return: an instance of 'Euler'
     """
     p = Euler(problem_number, problem_directory)
+
     p.get()
     p.template()
     return p
@@ -83,12 +84,24 @@ class Certification(object):
             warnings.warn("Your answer is incorrect, better luck next time! Here's a message:\n{}".format(self.message))
 
 
-class Euler(object):
+class Problem(object):
+    # todo: - expand on this
+    def __init__(self, number: int):
+        self.number = number
+        self.name = None
+        self.content = None
+        self.url = None
 
+
+class Euler(object):
+    # todo: - a Problem class to handle problem information
+    # todo: - and then a Client class to handle the web session and how to retrieve data from file or database
     def __init__(self, number: int, directory: str = None):
         self.number = number
         self.name = None
         self.content = None
+        self.url = None
+
         self.session = None
         self.logged_in = False
         self.certification = None
@@ -118,24 +131,29 @@ class Euler(object):
             self.session = HTMLSession()
             self.session.verify = False
 
-    def get(self):
-        """ Gets the problem information from local file or project euler. """
+    def total_problem_count(self):
         self._initialize_session()
-        try:
-            self.open_template()
-        except FileNotFoundError:
-            url = self._problem_url()
-            r = self.session.get(url)
-            if r.url != url:
-                raise ProblemDoesNotExist(
-                    'Problem {} does not exist, you have been redirected here: {}'.format(self.number, r.url))
+        r = self.session.get('https://projecteuler.net/recent')
+        return int(r.html.find('#id_column')[1].text)
 
-            self.name = r.html.find('h2', first=True).text
-            self.content = '\n'.join(_.text for _ in r.html.find('p'))
+    def get(self):
+        """ Gets the problem information from project euler. """
+        self._initialize_session()
+        url = self._problem_url()
+        r = self.session.get(url)
+        if r.url != url:
+            raise ProblemDoesNotExist(
+                'Problem {} does not exist, you have been redirected here: {}'.format(self.number, r.url))
 
-    def open_template(self):
+        self.url = r.url
+        self.name = r.html.find('h2', first=True).text
+        self.content = '\n'.join(_.text for _ in r.html.find('p'))
+
+    def retrieve(self):
+        """ Retrieves the problem information from a file (or database tbd) """
         with open(self.file(), 'rt') as f:
             contents = f.read()
+        self.url = contents[contents.find('url:\n') + 4:contents.find('\n\nname')]
         self.name = contents[contents.find('name:\n') + 6:contents.find('\n\ncontent')]
         self.content = contents[contents.find('content:\n') + 9: contents.find('\n\n"""')]
 
@@ -161,7 +179,7 @@ class Euler(object):
             return getpass.getpass(prompt)
         return input(prompt)
 
-    def _log_in(self, captcha_attempts: int = 3, password_attempts: int = 3) -> None:
+    def log_in(self, captcha_attempts: int = 3, password_attempts: int = 3) -> None:
         """ Log in to project ieuler.
 
         Needed when submitting answers.
@@ -207,7 +225,7 @@ class Euler(object):
     def post(self, answer, certificate_directory: str = None):
         """ Posts the problem answer to project ieuler.  Requires logging in. """
 
-        self._log_in()
+        self.log_in()
         captcha = self._captcha('submit')
         data = {'guess_1': answer, 'captcha': captcha}
         r = self.session.post(self._problem_url(), data=data)
@@ -216,6 +234,10 @@ class Euler(object):
     def template(self):
         """ Creates the template for the problem if one does not exist. """
         code = '"""' \
+               '\n\n' \
+               'url:' \
+               '\n' \
+               '{}' \
                '\n\n' \
                'name:' \
                '\n' \
@@ -243,7 +265,7 @@ class Euler(object):
                '    """ You can test your code here, just run or debug this file! """' \
                '\n' \
                '    print(answer())' \
-               '\n'.format(self.name, self.content, self.number, self.name)
+               '\n'.format(self.url, self.name, self.content, self.number, self.name)
 
         if self._f_exists():
             return

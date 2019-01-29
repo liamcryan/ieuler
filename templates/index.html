@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive Euler</title>
+</head>
+<body>
+    <div id="site-nav">
+        <a href="">problems</a>
+        {% if logged_in %}
+            <a href="">certificates</a>
+        {% endif %}
+    </div>
+    <h1> Project <b>Interactive</b> Euler</h1>
+    <p> Welcome to Interactive Euler.  This website aims to help you keep track of the work you do as you complete problems from Project Euler.</p>
+    <div id="problem">
+        <div id="problem-nav"></div>
+        <div id="url"></div>
+        <div id="number"></div>
+        <div id="name"></div>
+        <div id="content"></div>
+        <div id="submit"></div>
+    </div>
+    <div id="solve">
+        <a href="" class="language">python3</a>
+        <input type="text" name="code">
+        <input type="submit" value="submit">
+    </div>
+
+    <script>
+        var request = new XMLHttpRequest();
+        request.open('GET', 'http://127.0.0.1:5000/problem/1', true);
+
+        request.onload = function () {
+        var data = JSON.parse(this.response);
+        if (request.status >= 200 && request.status < 400) {
+            document.getElementById('url').innerHTML = data.problemUrl
+            document.getElementById('number').innerHTML = data.problemNumber
+            document.getElementById('name').innerHTML = data.problemName
+            document.getElementById('content').innerHTML = data.problemContent}
+        else {
+            console.log('error retrieving resource')}
+        }
+
+        request.send();
+    </script>
+</body>
+</html>

@@ -31,7 +31,7 @@ def test_get_project_by_number_http():
     p_1.get()  # populates p_1.name & p_1.content
     assert p_1.name == 'Multiples of 3 and 5'
     assert p_1.content == 'If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.\nFind the sum of all the multiples of 3 or 5 below 1000.'
-
+    assert p_1.url == 'https://projecteuler.net/problem=1'
 
 def test_get_project_by_number_local():
     """ this time test from local instead """

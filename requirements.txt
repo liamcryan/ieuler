@@ -1,4 +1,5 @@
 click
+flask
 Pillow
 requests_html
 pytest

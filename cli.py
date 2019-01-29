@@ -50,7 +50,7 @@ def submit(problem_number, problem_directory, certificate_directory):
     """ submit the problem to project euler """
     for number in problem_number:
         p = ieuler.Euler(number, problem_directory)
-        p.open_template()
+        p.retrieve()
         p.submit(certificate_directory=certificate_directory)
         if p.certification.status:
             click.echo('certification for problem {} is here: {}'.format(p.number, p.certification.file()))
