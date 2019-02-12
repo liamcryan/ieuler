@@ -2,47 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Interactive Euler</title>
+    <title>Interactive Project Euler</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <style type="text/css" media="screen">
+    #ace-editor {
+        width: 100%;
+    }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
 </head>
 <body>
-    <div id="site-nav">
-        <a href="">problems</a>
-        {% if logged_in %}
-            <a href="">certificates</a>
-        {% endif %}
-    </div>
-    <h1> Project <b>Interactive</b> Euler</h1>
-    <p> Welcome to Interactive Euler.  This website aims to help you keep track of the work you do as you complete problems from Project Euler.</p>
-    <div id="problem">
-        <div id="problem-nav"></div>
-        <div id="url"></div>
-        <div id="number"></div>
-        <div id="name"></div>
-        <div id="content"></div>
-        <div id="submit"></div>
-    </div>
-    <div id="solve">
-        <a href="" class="language">python3</a>
-        <input type="text" name="code">
-        <input type="submit" value="submit">
-    </div>
+    <ul>
+        <li><a href="">Login</a></li>
+        <li><a href="">Register</a></li>
+    </ul>
+    <h1>Interactive Project Euler</h1>
+    <h2>Track your progress as you complete problems from Project Euler</h2>
+    <p>Interactively solve Project Euler problems.  Run the code, submit the answer, and solve another problem.</p>
+    <p>All of your code is saved as well as the status of the Project Euler submission.</p>
+    <p>Project Euler registration is required for submissions to Project Euler.  You can play around in the meantime with the editor. </p>
+    <div class="demo">
+        <div id="ace-editor">#!/usr/local/bin/python3
+"""
+Multiples of 3 and 5
 
-    <script>
-        var request = new XMLHttpRequest();
-        request.open('GET', 'http://127.0.0.1:5000/problem/1', true);
+If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.
+Find the sum of all the multiples of 3 or 5 below 1000.
 
-        request.onload = function () {
-        var data = JSON.parse(this.response);
-        if (request.status >= 200 && request.status < 400) {
-            document.getElementById('url').innerHTML = data.problemUrl
-            document.getElementById('number').innerHTML = data.problemNumber
-            document.getElementById('name').innerHTML = data.problemName
-            document.getElementById('content').innerHTML = data.problemContent}
-        else {
-            console.log('error retrieving resource')}
-        }
+The value of the submit function will be calculated and returned!  Edit this file and solve the problem :)
+"""
 
-        request.send();
-    </script>
+
+def submit():
+    return 42
+        </div>
+        <div>
+            <button id="run-me">Run</button>
+            <div id="submission-text"></div>
+        </div>
+    </div>
+<script src="{{ url_for('static', filename='post.js') }}"></script>
+<script>
+    // set up the ace editor
+    var editor = ace.edit("ace-editor");
+    editor.setTheme("ace/theme/katzenmilch");
+    editor.session.setMode("ace/mode/python");
+    editor.setOption("maxLines", 100);
+
+    // set the event listener so that you can run the code
+    var runMe = document.getElementById("run-me");
+
+    // create the run function
+    function run() {
+        post('/run', editor.getValue(), function(d){
+            var submission = document.getElementById('submission-text');
+            submission.innerText = JSON.stringify(d);
+        });
+    }
+    // add the event listener
+    runMe.addEventListener('click', run);
+
+
+</script>
 </body>
 </html>

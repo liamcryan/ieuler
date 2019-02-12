@@ -5,11 +5,12 @@ import os
 import random
 import re
 import warnings
+from typing import Dict, Optional, Union, List
 
 from PIL import Image
 from requests_html import HTMLSession, HTML
 
-__all__ = ('template', 'Euler', 'Certification')
+__all__ = ('template', 'Euler', 'Certification', 'Client')
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -84,19 +85,92 @@ class Certification(object):
             warnings.warn("Your answer is incorrect, better luck next time! Here's a message:\n{}".format(self.message))
 
 
+# https://projecteuler.net/show=all
+
 class Problem(object):
-    # todo: - expand on this
-    def __init__(self, number: int):
+    def __init__(self, number, name, content):
         self.number = number
-        self.name = None
-        self.content = None
-        self.url = None
+        self.name = name
+        self.content = content
+        self.url = self.problem_url(number)
+
+    @staticmethod
+    def problem_url(number):
+        return 'https://projecteuler.net/problem={}'.format(number)
+
+    @staticmethod
+    def all_problems_url():
+        return 'https://projecteuler.net/show=all'
+
+
+class Client(object):
+    def __init__(self, cookies: Dict = None, logged_in: bool = False):
+        """ usage:
+            c = Client()
+            c.login()
+            c.submit()
+            ...
+        """
+        self.logged_in = logged_in
+        if cookies:
+            self.session = HTMLSession()
+            self.session.cookies.update(cookies)
+        else:
+            self.session = None
+
+    def _initialize_session(self):
+        if not self.session:
+            self.session = HTMLSession()
+            self.session.verify = False
+
+    def captcha(self) -> bytes:
+        """ a fun project will be to interpret the captcha from bytes so the user doesn't need to enter it """
+        self._initialize_session()
+        captcha_url = 'https://projecteuler.net/captcha/show_captcha.php?{}'.format(random.random())
+        r2 = self.session.get(captcha_url)
+        return r2.content
+
+    def login(self, username, password, captcha) -> Optional[Dict]:
+        self._initialize_session()
+        r = self.session.post('https://projecteuler.net/sign_in', data={'username': username,
+                                                                        'password': password,
+                                                                        'captcha': captcha,
+                                                                        'sign_in': 'Sign In'})
+        if r.url == 'https://projecteuler.net/archives':
+            self.logged_in = True
+        else:
+            message = r.html.find('#message', first=True).text
+            return {'message': message}
+
+    def get(self, number: int):
+        """ Gets the problem information from project euler. """
+        self._initialize_session()
+        url = Problem.problem_url(number)
+        r = self.session.get(url)
+        if r.url != url:
+            raise ProblemDoesNotExist(
+                'Problem {} does not exist, you have been redirected here: {}'.format(number, r.url))
+
+        name = r.html.find('h2', first=True).text
+        content = '\n'.join(_.text for _ in r.html.find('p'))
+        return Problem(number, name, content)
+
+    def submit(self, number, answer, captcha) -> Dict:
+        """ Submit the answer to project ieuler, requires logging in. """
+        self._initialize_session()
+        data = {'guess_1': answer, 'captcha': captcha}
+        r0 = self.session.post(Problem.problem_url(number), data=data)  # todo what if user not logged in...
+        captcha_message_element = r0.html.find('#message', first=True)
+        if captcha_message_element:
+            return {'status': False, 'message': captcha_message_element.text}
+        r0_text = r0.html.find('p', first=True).text
+        status = True if 'Congratulations' in r0_text else False
+        message = '\n'.join((_.text for _ in r0.html.find('p') if _.text != 'Return to Problems page.'))
+        return {'status': status, 'message': message}
 
 
 class Euler(object):
-    # todo: - a Problem class to handle problem information
-    # todo: - and then a Client class to handle the web session and how to retrieve data from file or database
-    def __init__(self, number: int, directory: str = None):
+    def __init__(self, number: int = None, directory: str = None):
         self.number = number
         self.name = None
         self.content = None
@@ -130,11 +204,6 @@ class Euler(object):
         if not self.session:
             self.session = HTMLSession()
             self.session.verify = False
-
-    def total_problem_count(self):
-        self._initialize_session()
-        r = self.session.get('https://projecteuler.net/recent')
-        return int(r.html.find('#id_column')[1].text)
 
     def get(self):
         """ Gets the problem information from project euler. """
@@ -294,5 +363,12 @@ class Euler(object):
 
 
 if __name__ == '__main__':
-    problem_1 = template(problem_number=1, problem_directory='problems')
-    problem_1.submit(certificate_directory='certificates')
+    import time
+    st = time.time()
+    c = Client()
+    probs = c.all_problems()
+    print(f'took {time.time() - st}s')
+    print(probs)
+
+    # problem_1 = template(problem_number=1, problem_directory='problems')
+    # problem_1.submit(certificate_directory='certificates')
