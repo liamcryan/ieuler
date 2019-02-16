@@ -10,7 +10,7 @@ from typing import Dict, Optional, Union, List
 from PIL import Image
 from requests_html import HTMLSession, HTML
 
-__all__ = ('template', 'Euler', 'Certification', 'Client')
+__all__ = ('template', 'Euler', 'Certification', 'Client', 'LoginException')
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -44,6 +44,9 @@ class PasswordAttemptsExceeded(Exception):
 class InvalidUsername(Exception):
     pass
 
+
+class LoginException(Exception):
+    pass
 
 class Certification(object):
 
@@ -130,17 +133,27 @@ class Client(object):
         r2 = self.session.get(captcha_url)
         return r2.content
 
-    def login(self, username, password, captcha) -> Optional[Dict]:
+    def login(self, username, password, captcha):
         self._initialize_session()
         r = self.session.post('https://projecteuler.net/sign_in', data={'username': username,
                                                                         'password': password,
-                                                                        'captcha': captcha,
+                                                                        'captcha': captcha if len(str(captcha)) == 5 else f'0{captcha}',
                                                                         'sign_in': 'Sign In'})
         if r.url == 'https://projecteuler.net/archives':
             self.logged_in = True
+        elif r.url == 'https://projecteuler.net/sign_in':
+            try:
+                message = r.html.find('#message', first=True).text
+                raise LoginException(message)
+            except UnicodeDecodeError:
+                r.html.encoding = r.apparent_encoding
+                euler_user = r.html.find("#info_panel", first=True).find('strong', first=True).text
+                if euler_user == username:
+                    self.logged_in = True
         else:
             message = r.html.find('#message', first=True).text
-            return {'message': message}
+            raise LoginException(message)
+
 
     def get(self, number: int):
         """ Gets the problem information from project euler. """
@@ -363,12 +376,12 @@ class Euler(object):
 
 
 if __name__ == '__main__':
-    import time
-    st = time.time()
     c = Client()
-    probs = c.all_problems()
-    print(f'took {time.time() - st}s')
-    print(probs)
+    captcha = c.captcha()
+    captcha_image = io.BytesIO(captcha)
+    img = Image.open(captcha_image)
+    img.show()
+    c.login(username='limecrayon', password='stings19', captcha=captcha)
 
     # problem_1 = template(problem_number=1, problem_directory='problems')
     # problem_1.submit(certificate_directory='certificates')

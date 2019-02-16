@@ -13,16 +13,21 @@
 </head>
 <body>
     <ul>
-        <li><a href="">Login</a></li>
-        <li><a href="">Register</a></li>
+        {% if current_user.is_anonymous %}
+            <li><a href="{{ url_for('login') }}">Login</a></li>
+            <li><a href="https://projecteuler.net/register" target="_blank">Register</a></li>
+        {% else %}
+            <li><a href="{{ url_for('me') }}">{{ current_user.username }}</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        {% endif %}
     </ul>
     <h1>Interactive Project Euler</h1>
-    <h2>Track your progress as you complete problems from Project Euler</h2>
-    <p>Interactively solve Project Euler problems.  Run the code, submit the answer, and solve another problem.</p>
-    <p>All of your code is saved as well as the status of the Project Euler submission.</p>
-    <p>Project Euler registration is required for submissions to Project Euler.  You can play around in the meantime with the editor. </p>
-    <div class="demo">
-        <div id="ace-editor">#!/usr/local/bin/python3
+<h2>Track your progress as you complete problems from Project Euler</h2>
+<p>Interactively solve Project Euler problems.  Run the code, submit the answer, and solve another problem.</p>
+<p>All of your code is saved as well as the status of the Project Euler submission.</p>
+<p>Project Euler registration is required for submissions to Project Euler.  You can play around in the meantime with the editor. </p>
+<div class="demo">
+    <div id="ace-editor">#!/usr/local/bin/python3
 """
 Multiples of 3 and 5
 
@@ -35,12 +40,12 @@ The value of the submit function will be calculated and returned!  Edit this fil
 
 def submit():
     return 42
-        </div>
-        <div>
-            <button id="run-me">Run</button>
-            <div id="submission-text"></div>
-        </div>
     </div>
+    <div>
+        <button id="run-me">Run</button>
+        <div id="submission-text"></div>
+    </div>
+</div>
 <script src="{{ url_for('static', filename='post.js') }}"></script>
 <script>
     // set up the ace editor
@@ -54,7 +59,7 @@ def submit():
 
     // create the run function
     function run() {
-        post('/run', editor.getValue(), function(d){
+        post("{{ url_for('run') }}", editor.getValue(), function(d){
             var submission = document.getElementById('submission-text');
             submission.innerText = JSON.stringify(d);
         });

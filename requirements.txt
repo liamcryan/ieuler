@@ -1,6 +1,11 @@
 click
 flask
+flask-wtf
+flask-sqlalchemy
+flask-migrate
+flask-login
 Pillow
 requests_html
 pytest
+python-dotenv
 vcrpy
