@@ -1,51 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Interactive Project Euler</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
-    <style type="text/css" media="screen">
+{% extends 'base.html' %}
+
+{% block title %} Interactive Project Euler {% endblock %}
+
+{% block style %}
+<style type="text/css" media="screen">
     #ace-editor {
         width: 100%;
     }
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
-</head>
-<body>
-    <ul>
-        {% if current_user.is_anonymous %}
-            <li><a href="{{ url_for('login') }}">Login</a></li>
-            <li><a href="https://projecteuler.net/register" target="_blank">Register</a></li>
-        {% else %}
-            <li><a href="{{ url_for('me') }}">{{ current_user.username }}</a></li>
-            <li><a href="{{ url_for('logout') }}">Logout</a></li>
-        {% endif %}
-    </ul>
-    <h1>Interactive Project Euler</h1>
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.2/ace.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1>Interactive Project Euler</h1>
 <h2>Track your progress as you complete problems from Project Euler</h2>
-<p>Interactively solve Project Euler problems.  Run the code, submit the answer, and solve another problem.</p>
+<p>Interactively solve Project Euler problems. Run the code, submit the answer, and solve another problem.</p>
 <p>All of your code is saved as well as the status of the Project Euler submission.</p>
-<p>Project Euler registration is required for submissions to Project Euler.  You can play around in the meantime with the editor. </p>
+<p>Project Euler registration is required for submissions to Project Euler. You can play around in the meantime with the
+    editor. </p>
 <div class="demo">
     <div id="ace-editor">#!/usr/local/bin/python3
 """
 Multiples of 3 and 5
 
-If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these multiples is 23.
+If we list all the natural numbers below 10 that are multiples of 3 or 5, we get 3, 5, 6 and 9. The sum of these
+multiples is 23.
 Find the sum of all the multiples of 3 or 5 below 1000.
 
-The value of the submit function will be calculated and returned!  Edit this file and solve the problem :)
+The value of the submit function will be calculated and returned! Edit this file and solve the problem :)
 """
 
 
 def submit():
-    return 42
+return 42
     </div>
     <div>
         <button id="run-me">Run</button>
         <div id="submission-text"></div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
 <script src="{{ url_for('static', filename='post.js') }}"></script>
 <script>
     // set up the ace editor
@@ -66,8 +63,5 @@ def submit():
     }
     // add the event listener
     runMe.addEventListener('click', run);
-
-
 </script>
-</body>
-</html>
+{% endblock %}

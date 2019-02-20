@@ -45,9 +45,9 @@
 
 
 from app import app, db
-from app.models import User, Problem, Code
+from app.models import User, Scratchpad, Problem
 
 
 @app.shell_context_processor
 def shell():
-    return {'db': db, 'User': User, 'Problem': Problem, 'Code': Code}
+    return {'db': db, 'User': User, 'Problem': Problem, 'Scratchpad': Scratchpad}

@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Interactive Project Euler</title>
+{% extends 'base.html' %}
 
-</head>
-<body>
+{% block title %} Interactive Project Euler {% endblock %}
+
+{% block content %}
 <h1> Sign in to Project Euler</h1>
 <form action="" method="post" novalidate>
     {{ form.hidden_tag() }}
@@ -13,36 +10,38 @@
         {{ form.username.label }} <br>
         {{ form.username(size=32) }} <br>
         {% for error in form.username.errors %}
-            <span style="color:red;">[{{ error }}]</span>
+        <span style="color:red;">[{{ error }}]</span>
         {% endfor %}
     </p>
     <p>
         {{ form.password.label }} <br>
         {{ form.password(size=32) }} <br>
         {% for error in form.password.errors %}
-            <span style="color:red;">[{{ error }}]</span>
+        <span style="color:red;">[{{ error }}]</span>
         {% endfor %}
     </p>
     <p>
         {{ form.captcha.label }} <br>
         {{ form.captcha(size=32) }} <br>
         {% for error in form.captcha.errors %}
-            <span style="color:red;">[{{ error }}]</span>
+        <span style="color:red;">[{{ error }}]</span>
         {% endfor %}
     </p>
     <p> {{ form.submit() }} </p>
     <img id="captcha-img" src="">
 </form>
+{% endblock %}
+
+{% block scripts %}
 <script src="{{ url_for('static', filename='get.js') }}"></script>
 <script>
-    function newCaptcha() {
-        get("{{ url_for('captcha') }}", function(data){
-        console.log(data);
-            document.getElementById('captcha-img').setAttribute('src', 'data:image/png;base64,' + data);
-        });
-    }
-    newCaptcha();
-</script>
+        function newCaptcha() {
+            get("{{ url_for('captcha') }}", function(data){
+            console.log(data);
+                document.getElementById('captcha-img').setAttribute('src', 'data:image/png;base64,' + data);
+            });
+        }
+        newCaptcha();
 
-</body>
-</html>
+</script>
+{% endblock %}

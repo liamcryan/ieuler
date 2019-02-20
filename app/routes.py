@@ -6,7 +6,7 @@ from werkzeug.urls import url_parse
 
 from app import app, db
 from app.forms import LoginForm
-from app.models import User
+from app.models import User, Scratchpad, Problem
 from ieuler import Client, LoginException
 
 
@@ -23,37 +23,45 @@ def login():
     if form.validate_on_submit():
         c = Client(session.get('euler_cookies'))
         username = form.username.data
-        try:
-            c.login(username=username, password=form.password.data, captcha=form.captcha.data)
-        except LoginException as e:
-            flash(f'Login not successful: {e}')
-            return redirect(url_for('login'))
+        # try:
+        #     c.login(username=username, password=form.password.data, captcha=form.captcha.data)
+        # except LoginException as e:
+        #     flash(f'Login not successful: {e}')
+        #     return redirect(url_for('login'))
 
         user = User.query.filter_by(username=username).first()
         if user is None:
+            user = User(username=username)
             db.session.add(user)
             db.session.commit()
 
-        session['euler_cookies'] = c.session.cookies.get_dict()
+        # session['euler_cookies'] = c.session.cookies.get_dict()
 
         login_user(user)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
-            next_page = url_for('me')
+            next_page = url_for('me', username=user.username)
         return redirect(next_page)
 
     return render_template('login.html', form=form)
 
 
-@app.route('/me')
+@app.route('/me/<username>')
 @login_required
-def me():
-    return """<html>this is the me page...where the good stuff happens</html>"""
+def me(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    scratchpad = user.scratchpads.first()  # need to sort by timestamp
+    if not scratchpad:
+        problem = Problem.query.first()
+        scratchpad = Scratchpad(language='python', code='', solver=user, problem=problem)
+        db.session.add(scratchpad)
+        db.session.commit()
+    return render_template('me.html', user=user, scratchpad=scratchpad)
 
 
 @app.route('/logout')
 def logout():
-    session.pop('euler_cookies')
+    # session.pop('euler_cookies')
     logout_user()
     return redirect(url_for('index'))
 
