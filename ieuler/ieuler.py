@@ -93,7 +93,7 @@ class Client(object):
 
         self.problems = []  # todo should not be able to set things equal to this/append data, use add_to_problems
         try:
-            with open('../.problems', 'rt') as f:
+            with open(self.problems_filename, 'rt') as f:
                 self.problems = json.load(f)
         except (json.decoder.JSONDecodeError, FileNotFoundError):
             pass

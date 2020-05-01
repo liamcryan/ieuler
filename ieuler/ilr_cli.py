@@ -12,12 +12,13 @@ from ieuler import ieuler
 class Session(object):
     def __init__(self):
         self.client = ieuler.Client(
-            cookies_filename='../.cookies',
-            credentials_filename='../.credentials',
-            problems_filename='../.problems'
+            cookies_filename='.cookies',
+            credentials_filename='.credentials',
+            problems_filename='.problems'
         )
         self.get_all_problems_thread = None
         if not self.client.problems:
+            click.echo('starting thread')
             self.get_all_problems_thread = threading.Thread(target=self.client.get_all_problems)
             self.get_all_problems_thread.start()
 
@@ -80,7 +81,7 @@ def solve(session, problem_number, language):
 def status(session, problem_number):
     """ Get the status of a problem. """
     problem = session.client.problems[int(problem_number) - 1]
-    json.dumps(problem, sort_keys=True, indent=4)
+    click.echo(json.dumps(problem, sort_keys=True, indent=4))
 
 
 @cli.command()
