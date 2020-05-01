@@ -49,11 +49,11 @@ def require_login(func):
             with open(self.credentials_filename, 'wt') as f:
                 json.dump({'username': username, 'password': password}, f)
 
-        r = func(*args, **kwargs)
+            # now save the cookies (so that we can remain logged in)
+            with open(self.cookies_filename, 'wt') as f:
+                json.dump(self.session.cookies.get_dict(), f)
 
-        # now save the cookies (so that we can remain logged in)
-        with open(self.cookies_filename, 'wt') as f:
-            json.dump(self.session.cookies.get_dict(), f)
+        r = func(*args, **kwargs)
 
         return r
 
@@ -70,6 +70,10 @@ class ProblemDoesNotExist(Exception):
 
 
 class BadCaptcha(Exception):
+    pass
+
+
+class LoginUnsuccessful(Exception):
     pass
 
 
@@ -160,9 +164,11 @@ class Client(object):
                                                                     'sign_in': 'Sign In'})
 
         if r.url != 'https://projecteuler.net/archives':
-            raise Exception(f"{r.html.find('#message', first=True).text}\nUnable to login.")
-
-        # todo log a successful login
+            error_message = r.html.find('#message', first=True).text
+            if 'Username not known' in error_message:
+                raise LoginUnsuccessful(f"{error_message}")
+            if 'did not enter the confirmation code' in error_message:
+                raise BadCaptcha(f'{error_message}')
 
     @require_login
     def submit(self, number, answer, captcha: Union[str, int] = None):
