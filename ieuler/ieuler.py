@@ -11,7 +11,7 @@ import requests
 import rever
 from PIL import Image
 
-import terminal_image_viewer
+from ieuler import terminal_image_viewer
 
 
 class Captcha(object):
@@ -93,7 +93,7 @@ class Client(object):
 
         self.problems = []  # todo should not be able to set things equal to this/append data, use add_to_problems
         try:
-            with open('.problems', 'rt') as f:
+            with open('../.problems', 'rt') as f:
                 self.problems = json.load(f)
         except (json.decoder.JSONDecodeError, FileNotFoundError):
             pass
@@ -315,7 +315,7 @@ class Client(object):
             self.update_problems(self.get_problems_on_page(page=page))
             return self.get_detailed_problem(number)
 
-        if 'Problem' not in self.problems[number-1]:
+        if 'Problem' not in self.problems[number - 1]:
             details = self.get_problem_details(number)
             self.problems[number].update(details)
 

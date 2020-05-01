@@ -6,15 +6,15 @@ import time
 
 import click
 
-import ieuler
+from ieuler import ieuler
 
 
 class Session(object):
     def __init__(self):
         self.client = ieuler.Client(
-            cookies_filename='.cookies',
-            credentials_filename='.credentials',
-            problems_filename='.problems'
+            cookies_filename='../.cookies',
+            credentials_filename='../.credentials',
+            problems_filename='../.problems'
         )
         self.get_all_problems_thread = None
         if not self.client.problems:

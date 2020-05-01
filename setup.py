@@ -21,11 +21,11 @@ setup(name='ieuler',
       long_description=readme,
       author='Liam Cryan',
       author_email='cryan.liam@gmail.com',
-      py_modules=['ieuler'],
+      packages=['ieuler'],
       install_requires=install_requires,
       entry_points='''
             [console_scripts]
-            ilr=ilr_cli:cli
+            ilr=ieuler.ilr_cli:cli
       ''',
       include_package_data=True,
       url='https://github.com/liamcryan/ieuler',
