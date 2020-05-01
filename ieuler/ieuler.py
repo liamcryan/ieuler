@@ -3,7 +3,7 @@ import json
 import io
 import random
 import re
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, Dict
 
 import click
 import requests_html
@@ -11,7 +11,7 @@ import requests
 import rever
 from PIL import Image
 
-from ieuler import terminal_image_viewer
+from ieuler.terminal_image_viewer import show_image
 
 
 class Captcha(object):
@@ -21,7 +21,7 @@ class Captcha(object):
         self.input = None
 
     def show_in_terminal(self):
-        terminal_image_viewer.show_image(self.img)
+        show_image(self.img)
         self.get_input()
 
     def get_input(self):
@@ -179,8 +179,7 @@ class Client(object):
         form_e = r.html.find('form', first=True)
         completed = form_e.text
         if 'Completed' in completed:
-            # note don't include keys we don't want updated
-            # in this case solve_place: None would replace a valid solve_place
+            # note don't include keys we don't want updated so they don't update good data
             return {'correct_answer': form_e.find('b', first=True).text,
                     'completed_on': form_e.find('span', first=True).text,
                     'Solved': True}
@@ -210,14 +209,10 @@ class Client(object):
             # ie cannot be correct then incorrect
             return {'correct_answer': None,
                     'completed_on': None,
-                    'Solved': False,
-                    'solve_place': None}
+                    'Solved': False}
 
         # or you just now solved it
         if 'correct' in p_e.text:
-            # get the place in which you solved it:
-            p_e2_text = p_es[1].text
-            place = re.search('([0-9]*)', p_e2_text).group(1)
 
             # call the url again with a get to get the data we are looking for
             r = self.session.get(f'https://projecteuler.net/problem={number}')
@@ -227,8 +222,7 @@ class Client(object):
             # - ok to overwrite any other key/value in this case in updates
             return {'correct_answer': form_e.find('b', first=True).text,
                     'completed_on': form_e.find('span', first=True).text,
-                    'Solved': True,
-                    'solve_place': place}
+                    'Solved': True}
 
     def get_problem_details(self, number: int):
         url = f'https://projecteuler.net/problem={number}'
@@ -325,7 +319,7 @@ class Client(object):
             details = self.get_problem_details(number)
             self.problems[number].update(details)
 
-        return self.problems[number]
+        return self.problems[number - 1]
 
     @require_login
     def get_next_detailed_problem(self):
@@ -349,53 +343,3 @@ class Client(object):
         for page in range(1, self.get_page_qty() + 1):
             problems = self.get_problems_on_page(page=page)
             self.update_problems(problems)
-
-
-if __name__ == '__main__':
-    """ 
-    % ilr problems ---> by default gives all problems, can specify a lesser number
-    id      problem     description     solved      code
-    1       fibonacci   asdfasdf;lkj    solved      {python3.7: ''}
-    2       blah        as;dlfkjasdfj   false       {python3.7: ''}
-    ...
-    ...
-    
-    % ilr solve --> by default creates python template, at some point should be able to specify language
-    Created problem1.py file template here /users/me/problem1.py
-    For details type in % vim problem1.py
-    
-    % vim problem1.py
-    % irl submit  # looks for language provided with solve command
-    Executing problem1.py
-    Result is 100029283
-
-    Please Enter Captcha: 12345
-    Submitting 100029283
-    Congratulations!  Or maybe not!
-    Updating problems.
-    
-    """
-    client = Client()
-    a = client.get_detailed_problem(number=1)
-    client.submit(2, 1)
-    client.get_all_problems()
-    print('oka')
-    # a = client.get_problem_details(15)
-    # b = client.get_problem_details(18)
-
-    # client.login(username='limecrayon', password='stings19')
-
-    # next_problem = {}
-    # for _ in all_problems:
-    #     if _['Solved']:
-    #         next_problem = client.get_problem_number(_['ID'])
-    #         _.update(next_problem)
-    #         break
-    #
-    # all_problems[next_problem['ID']] = next_problem
-
-    # client.get_problem_number(100)
-    # a = client.all_problems()
-    # now that you have the problems, you can work on one
-
-    print('ok')
