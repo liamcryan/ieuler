@@ -1,11 +1,5 @@
 click
-flask
-flask-wtf
-flask-sqlalchemy
-flask-migrate
-flask-login
 Pillow
+numpy
 requests_html
-pytest
-python-dotenv
-vcrpy
+git+https://github.com/liamcryan/rever

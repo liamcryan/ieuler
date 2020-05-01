@@ -1,16 +1,12 @@
 venv/
 .idea/
 
-__pycache__/
-
-.pytest_cache/
-
-dist/
-build/
+*.pyc
 *.egg-info/
 
-
-ieuler/problems/
-ieuler/certificates/
-problems/
-certificates/
+.cookies
+.credentials
+.problems
+1.py
+2.py
+3.py

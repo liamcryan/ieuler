@@ -1,387 +1,395 @@
-import getpass
+import functools
+import json
 import io
-import importlib
-import os
 import random
 import re
-import warnings
-from typing import Dict, Optional, Union, List
+from typing import Union, Tuple, List
 
+import click
+import requests_html
+import requests
+import rever
 from PIL import Image
-from requests_html import HTMLSession, HTML
 
-__all__ = ('template', 'Euler', 'Certification', 'Client', 'LoginException')
-
-here = os.path.abspath(os.path.dirname(__file__))
+import terminal_image_viewer
 
 
-def template(problem_number: int, problem_directory: str) -> 'Euler':
-    """ Gets the problem details from project ieuler and creates a template file.
+class Captcha(object):
+    def __init__(self, captcha_bytes: bytes):
+        self.captcha_bytes = captcha_bytes
+        self.img = Image.open(io.BytesIO(self.captcha_bytes))
+        self.input = None
 
-    :param problem_number: the problem number you want to tackle
-    :param problem_directory: the directory you would like to keep your problems
-    :return: an instance of 'Euler'
-    """
-    p = Euler(problem_number, problem_directory)
+    def show_in_terminal(self):
+        terminal_image_viewer.show_image(self.img)
+        self.get_input()
 
-    p.get()
-    p.template()
-    return p
+    def get_input(self):
+        self.input = input('Please enter the captcha: ')
+
+
+def require_login(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        self = args[0]
+        if not self.logged_in():
+            try:
+                with open(self.credentials_filename, 'rt') as f:
+                    credentials = json.load(f)
+                    username, password = credentials['username'], credentials['password']
+            except (FileNotFoundError, json.decoder.JSONDecodeError):
+                # tell the user they need to login
+                click.confirm('A login is required.  Would you like to continue?', abort=True)
+                username, password = self.get_user_input_credentials()
+
+            self.login(username, password)
+            # after you login, you can update self.problems
+
+            # save the username and password (so we don't have to keep asking)
+            with open(self.credentials_filename, 'wt') as f:
+                json.dump({'username': username, 'password': password}, f)
+
+        r = func(*args, **kwargs)
+
+        # now save the cookies (so that we can remain logged in)
+        with open(self.cookies_filename, 'wt') as f:
+            json.dump(self.session.cookies.get_dict(), f)
+
+        return r
+
+    return wrapper
+
+
+@rever.rever(exception=(requests.exceptions.ConnectionError,))
+def post(session, url, data):
+    return session.post(url, data=data)
 
 
 class ProblemDoesNotExist(Exception):
     pass
 
 
-class CaptchaAttemptsExceeded(Exception):
+class BadCaptcha(Exception):
     pass
-
-
-class PasswordAttemptsExceeded(Exception):
-    pass
-
-
-class InvalidUsername(Exception):
-    pass
-
-
-class LoginException(Exception):
-    pass
-
-class Certification(object):
-
-    def __init__(self, html: HTML, directory: str = None):
-        p1_text = html.find('p', first=True).text
-        self.status = True if 'Congratulations' in p1_text else False
-        self.message = '\n'.join((_.text for _ in html.find('p') if _.text != 'Return to Problems page.'))
-        self.number = int(re.search('([0-9]+)', self.message).group())
-        self.html_page = html
-        self.directory = directory
-
-    def _module_name(self):
-        return 'problem_{}_certificate'.format(self.number)
-
-    def _f_name(self):
-        return '{}.html'.format(self._module_name())
-
-    def _f_path(self):
-        return self.directory
-
-    def file(self):
-        return os.path.join(self._f_path(), self._f_name())
-
-    @staticmethod
-    def _base(b_html: bytes) -> bytes:
-        """ inject the base tag within the <head> tag -> <base href="https://www.projecteuler.net"/> """
-        return b_html[:b_html.find(
-            b'<head>\r\n') + 8] + b'<base href="https://projecteuler.net"/>' + b_html[b_html.find(b'<head>\r\n') + 8:]
-
-    def certify(self):
-        if self.status:
-            try:
-                with open(self.file(), 'wb') as f:
-                    f.write(self._base(self.html_page.raw_html))
-            except FileNotFoundError:
-                os.makedirs(self._f_path())
-                self.certify()
-        else:
-            warnings.warn("Your answer is incorrect, better luck next time! Here's a message:\n{}".format(self.message))
-
-
-# https://projecteuler.net/show=all
-
-class Problem(object):
-    def __init__(self, number, name, content):
-        self.number = number
-        self.name = name
-        self.content = content
-        self.url = self.problem_url(number)
-
-    @staticmethod
-    def problem_url(number):
-        return 'https://projecteuler.net/problem={}'.format(number)
-
-    @staticmethod
-    def all_problems_url():
-        return 'https://projecteuler.net/show=all'
 
 
 class Client(object):
-    def __init__(self, cookies: Dict = None, logged_in: bool = False):
-        """ usage:
-            c = Client()
-            c.login()
-            c.submit()
-            ...
-        """
-        self.logged_in = logged_in
+
+    def __init__(self, cookies_filename='.cookies', credentials_filename='.credentials', problems_filename='.problems'):
+        self.session = requests_html.HTMLSession()
+        self.cookies_filename = cookies_filename
+        self.credentials_filename = credentials_filename
+        self.problems_filename = problems_filename
+
+        cookies = None
+        try:
+            with open(self.cookies_filename, 'rt') as f:
+                cookies = json.load(f)
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            pass
+
         if cookies:
-            self.session = HTMLSession()
             self.session.cookies.update(cookies)
-        else:
-            self.session = None
 
-    def _initialize_session(self):
-        if not self.session:
-            self.session = HTMLSession()
-            self.session.verify = False
+        self.problems = []  # todo should not be able to set things equal to this/append data, use add_to_problems
+        try:
+            with open('.problems', 'rt') as f:
+                self.problems = json.load(f)
+        except (json.decoder.JSONDecodeError, FileNotFoundError):
+            pass
 
-    def captcha(self) -> bytes:
-        """ a fun project will be to interpret the captcha from bytes so the user doesn't need to enter it """
-        self._initialize_session()
-        captcha_url = 'https://projecteuler.net/captcha/show_captcha.php?{}'.format(random.random())
+        self.captcha = None  # will be an object of Captcha
+
+    def update_problems(self, problems: List):
+        changes = False
+        for _ in problems:
+            if int(_['ID']) <= len(self.problems):  # todo check the logic in this if is correct
+                if _ != self.problems[int(_['ID']) - 1]:
+                    self.problems[int(_['ID']) - 1].update(_)
+                    changes = True
+            else:
+                self.problems.append(_)
+                changes = True
+
+        # overwrite (update) the saved problems
+        if changes:
+            try:
+                with open(self.problems_filename, 'rt') as f:
+                    previous_problems = json.load(f)
+            except FileNotFoundError:
+                previous_problems = []
+
+            try:
+                with open(self.problems_filename, 'wt') as f:
+                    json.dump(self.problems, f)
+            except TypeError:
+                with open(self.problems_filename, 'wt') as f:
+                    json.dump(previous_problems, f)
+
+    def logged_in(self):
+        r0 = self.session.get('https://projecteuler.net')
+        for _ in r0.html.find('a'):
+            if _.attrs.get('title') == 'Sign Out':
+                return True
+        return False
+
+    def get_captcha_raw(self) -> bytes:
+        captcha_url = f'https://projecteuler.net/captcha/show_captcha.php?{random.random()}'
         r2 = self.session.get(captcha_url)
         return r2.content
 
-    def login(self, username, password, captcha):
-        self._initialize_session()
-        r = self.session.post('https://projecteuler.net/sign_in', data={'username': username,
-                                                                        'password': password,
-                                                                        'captcha': captcha if len(str(captcha)) == 5 else f'0{captcha}',
-                                                                        'sign_in': 'Sign In'})
-        if r.url == 'https://projecteuler.net/archives':
-            self.logged_in = True
-        elif r.url == 'https://projecteuler.net/sign_in':
-            try:
-                message = r.html.find('#message', first=True).text
-                raise LoginException(message)
-            except UnicodeDecodeError:
-                r.html.encoding = r.apparent_encoding
-                euler_user = r.html.find("#info_panel", first=True).find('strong', first=True).text
-                if euler_user == username:
-                    self.logged_in = True
-        else:
-            message = r.html.find('#message', first=True).text
-            raise LoginException(message)
-
-
-    def get(self, number: int):
-        """ Gets the problem information from project euler. """
-        self._initialize_session()
-        url = Problem.problem_url(number)
-        r = self.session.get(url)
-        if r.url != url:
-            raise ProblemDoesNotExist(
-                'Problem {} does not exist, you have been redirected here: {}'.format(number, r.url))
-
-        name = r.html.find('h2', first=True).text
-        content = '\n'.join(_.text for _ in r.html.find('p'))
-        return Problem(number, name, content)
-
-    def submit(self, number, answer, captcha) -> Dict:
-        """ Submit the answer to project ieuler, requires logging in. """
-        self._initialize_session()
-        data = {'guess_1': answer, 'captcha': captcha}
-        r0 = self.session.post(Problem.problem_url(number), data=data)  # todo what if user not logged in...
-        captcha_message_element = r0.html.find('#message', first=True)
-        if captcha_message_element:
-            return {'status': False, 'message': captcha_message_element.text}
-        r0_text = r0.html.find('p', first=True).text
-        status = True if 'Congratulations' in r0_text else False
-        message = '\n'.join((_.text for _ in r0.html.find('p') if _.text != 'Return to Problems page.'))
-        return {'status': status, 'message': message}
-
-
-class Euler(object):
-    def __init__(self, number: int = None, directory: str = None):
-        self.number = number
-        self.name = None
-        self.content = None
-        self.url = None
-
-        self.session = None
-        self.logged_in = False
-        self.certification = None
-        self.directory = directory
-
-    def _module_name(self):
-        return 'problem_{}'.format(self.number)
-
-    def _f_path(self):
-        return self.directory
-
-    def _f_name(self):
-        return '{}.py'.format(self._module_name())
-
-    def file(self):
-        return os.path.join(self._f_path(), self._f_name())
-
-    def _f_exists(self):
-        if os.path.exists(self.file()):
-            return True
-
-    def _problem_url(self):
-        return 'https://projecteuler.net/problem={}'.format(self.number)
-
-    def _initialize_session(self):
-        if not self.session:
-            self.session = HTMLSession()
-            self.session.verify = False
-
-    def get(self):
-        """ Gets the problem information from project euler. """
-        self._initialize_session()
-        url = self._problem_url()
-        r = self.session.get(url)
-        if r.url != url:
-            raise ProblemDoesNotExist(
-                'Problem {} does not exist, you have been redirected here: {}'.format(self.number, r.url))
-
-        self.url = r.url
-        self.name = r.html.find('h2', first=True).text
-        self.content = '\n'.join(_.text for _ in r.html.find('p'))
-
-    def retrieve(self):
-        """ Retrieves the problem information from a file (or database tbd) """
-        with open(self.file(), 'rt') as f:
-            contents = f.read()
-        self.url = contents[contents.find('url:\n') + 4:contents.find('\n\nname')]
-        self.name = contents[contents.find('name:\n') + 6:contents.find('\n\ncontent')]
-        self.content = contents[contents.find('content:\n') + 9: contents.find('\n\n"""')]
-
-    def submit(self, certificate_directory):
-        """ Submit the answer to project ieuler, requires logging in. """
-        answer = self.answer()
-        self.post(answer=answer, certificate_directory=certificate_directory)
-        self.certification.certify()
-
-    def _captcha(self, _id: str):
-        """ a fun project will be to interpret the captcha from bytes so the user doesn't need to enter it """
-        captcha_url = 'https://projecteuler.net/captcha/show_captcha.php?{}'.format(random.random())
-        r2 = self.session.get(captcha_url)
-        captcha_image = io.BytesIO(r2.content)
-        img = Image.open(captcha_image)
-        img.show()
-        return self._input('enter the captcha code from the image ({}): '.format(_id))
+    def get_user_input_captcha(self):
+        click.confirm('A captcha is required.  Would you like to continue?', abort=True)
+        self.captcha = Captcha(self.get_captcha_raw())
+        self.captcha.show_in_terminal()
+        return self.captcha.input
 
     @staticmethod
-    def _input(prompt):
-        """ alias for built in input function -> facilitates testing"""
-        if 'password' in prompt:
-            return getpass.getpass(prompt)
-        return input(prompt)
+    def get_user_input_credentials() -> Tuple[str, str]:
+        username = click.prompt('Please enter your Project Euler username', type=str)
+        password = click.prompt('Please enter your Project Euler password', type=str, hide_input=True)
+        return username, password
 
-    def log_in(self, captcha_attempts: int = 3, password_attempts: int = 3) -> None:
-        """ Log in to project ieuler.
+    def login(self, username: str, password: str, captcha: Union[str, int] = None):
+        if not captcha:
+            captcha = self.get_user_input_captcha()
 
-        Needed when submitting answers.
+        r = post(self.session, 'https://projecteuler.net/sign_in', {'username': username,
+                                                                    'password': password,
+                                                                    'captcha': captcha,
+                                                                    'sign_in': 'Sign In'})
 
-        :param captcha_attempts: number of attempts before raising exception
-        :return: None
-        """
-        user_prompt = 'enter your project ieuler username: '
-        pass_prompt = 'enter your project ieuler password: '
-        if self.logged_in:
-            return
-        self._initialize_session()
-        username = self._input(user_prompt)
-        password = self._input(pass_prompt)
+        if r.url != 'https://projecteuler.net/archives':
+            raise Exception(f"{r.html.find('#message', first=True).text}\nUnable to login.")
 
-        while captcha_attempts > 0 and password_attempts > 0:
-            captcha = self._captcha('sign in')
-            r = self.session.post('https://projecteuler.net/sign_in', data={'username': username,
-                                                                            'password': password,
-                                                                            'captcha': captcha,
-                                                                            'sign_in': 'Sign In'})
-            if r.url == 'https://projecteuler.net/archives':
-                self.logged_in = True
-                break  # good, you are logged in
-            else:
-                message = r.html.find('#message', first=True).text
-                warnings.warn(message)
-                if message == 'Sign In Failed':
-                    password = self._input(pass_prompt)
-                    password_attempts += 1
-                elif message == 'Username not known':
-                    raise InvalidUsername(message)
-                elif message == 'You did not enter the confirmation code':
-                    captcha_attempts -= 1
+        # todo log a successful login
+
+    @require_login
+    def submit(self, number, answer, captcha: Union[str, int] = None):
+
+        # it is possible you already solved this problem
+
+        r = self.session.get(f'https://projecteuler.net/problem={number}')
+        form_e = r.html.find('form', first=True)
+        completed = form_e.text
+        if 'Completed' in completed:
+            # note don't include keys we don't want updated
+            # in this case solve_place: None would replace a valid solve_place
+            return {'correct_answer': form_e.find('b', first=True).text,
+                    'completed_on': form_e.find('span', first=True).text,
+                    'Solved': True}
+
+        submit_token = None
+        input_e = form_e.find('input')
+        for _input in input_e:
+            if _input.attrs.get('name') == 'submit_token':
+                submit_token = _input.attrs['value']
+                break
+
+        if not captcha:
+            captcha = self.get_user_input_captcha()
+
+        r = self.session.post(f'https://projecteuler.net/problem={number}',
+                              data={f'guess_{number}': answer, 'captcha': captcha, 'submit_token': submit_token})
+
+        captcha_message_element = r.html.find('#message', first=True)
+        if captcha_message_element:
+            raise BadCaptcha(captcha_message_element.text)
+
+        # or it is possible you failed to solve it
+        p_es = r.html.find('p')
+        p_e = p_es[0]
+        if 'incorrect' in p_e.text:
+            # ok to include all keys because we can only incorrect before being correct
+            # ie cannot be correct then incorrect
+            return {'correct_answer': None,
+                    'completed_on': None,
+                    'Solved': False,
+                    'solve_place': None}
+
+        # or you just now solved it
+        if 'correct' in p_e.text:
+            # get the place in which you solved it:
+            p_e2_text = p_es[1].text
+            place = re.search('([0-9]*)', p_e2_text).group(1)
+
+            # call the url again with a get to get the data we are looking for
+            r = self.session.get(f'https://projecteuler.net/problem={number}')
+            form_e = r.html.find('form', first=True)
+
+            # all valid key/value
+            # - ok to overwrite any other key/value in this case in updates
+            return {'correct_answer': form_e.find('b', first=True).text,
+                    'completed_on': form_e.find('span', first=True).text,
+                    'Solved': True,
+                    'solve_place': place}
+
+    def get_problem_details(self, number: int):
+        url = f'https://projecteuler.net/problem={number}'
+        r = self.session.get(url)
+        if r.url != url:
+            raise ProblemDoesNotExist(f'Problem {number} does not exist')
+
+        problem_info = r.html.find('h2', first=True).text  # only one h2 element
+        problem_content = r.html.find('.problem_content', first=True).html
+        for _ in ('<img src="', '<a href="'):
+            st = problem_content.find(_)
+            if st > -1:
+                problem_content = problem_content[:st + len(_)] + 'https://projecteuler.com/' + problem_content[
+                                                                                                st + len(_):]
+        return {
+            'ID': number,
+            'Description / Title': problem_info,
+            'Problem': problem_content,
+            'problem_url': url
+        }
+
+    def get_problems_on_page(self, page: int) -> List:
+        data = []
+        if page == 1:
+            url = 'https://projecteuler.net/archives'
         else:
-            if captcha_attempts == 0:
-                raise CaptchaAttemptsExceeded(
-                    'Too many attempts to get the captcha correct. Limit is: {}'.format(captcha_attempts))
-            elif password_attempts == 0:
-                raise PasswordAttemptsExceeded(
-                    'Too many attempts to get the password correct. Limit is: {}'.format(password_attempts))
+            url = f'https://projecteuler.net/archives;page={page}'
 
-    def post(self, answer, certificate_directory: str = None):
-        """ Posts the problem answer to project ieuler.  Requires logging in. """
+        r = self.session.get(url)
 
-        self.log_in()
-        captcha = self._captcha('submit')
-        data = {'guess_1': answer, 'captcha': captcha}
-        r = self.session.post(self._problem_url(), data=data)
-        self.certification = Certification(html=r.html, directory=certificate_directory)
+        column_headers = []  # id, desc, solved_by, difficulty, solved
+        for i, tr in enumerate(r.html.find('tr')):
+            if not tr.find('.id_column'):
+                continue
 
-    def template(self):
-        """ Creates the template for the problem if one does not exist. """
-        code = '"""' \
-               '\n\n' \
-               'url:' \
-               '\n' \
-               '{}' \
-               '\n\n' \
-               'name:' \
-               '\n' \
-               '{}' \
-               '\n\n' \
-               'content:' \
-               '\n' \
-               '{}' \
-               '\n\n"""' \
-               '\n\n\n' \
-               'def answer():' \
-               '\n' \
-               '    """ The answer to Problem {}: {}.' \
-               '\n\n' \
-               '    Solve the problem here!' \
-               '\n\n' \
-               '    :return: your answer' \
-               '\n' \
-               '    """' \
-               '\n' \
-               '    return' \
-               '\n\n\n' \
-               'if __name__ == "__main__":' \
-               '\n' \
-               '    """ You can test your code here, just run or debug this file! """' \
-               '\n' \
-               '    print(answer())' \
-               '\n'.format(self.url, self.name, self.content, self.number, self.name)
+            row = {_: None for _ in column_headers}
+            if i == 0:
+                for th in tr.find('th'):
+                    if th.text:
+                        column_headers.append(th.text)
+                continue
 
-        if self._f_exists():
-            return
+            for j, td in enumerate(tr.find('td')):
 
-        try:
-            with open(self.file(), 'wt') as f:
-                f.write(code)
-        except FileNotFoundError:
-            os.makedirs(self._f_path())
-            self.template()
+                if j < len(column_headers):
+                    row[column_headers[j]] = td.text
 
-    def answer(self):
-        """ Read the problem's template file and call the answer function. """
-        f_path = self._f_path()
-        basename = os.path.basename(f_path)
-        dirname = os.path.dirname(f_path)
-        while basename[0] != '.':
-            try:
-                module = importlib.import_module(name='{}.{}'.format(basename, self._module_name()))
-                return module.answer()
-            except ModuleNotFoundError:
-                basename = os.path.basename(dirname) + '.' + basename
-                dirname = os.path.dirname(dirname)
-            except TypeError as e:
-                raise ImportError(e)
+                else:
+                    img = td.find('img', first=True)
+                    if img:
+                        if img.attrs['title'] == 'Solved':
+                            row['Solved'] = True
+                            break
+                    row['Solved'] = False
+                    break
+
+            row.update({'problem_url': f'https://projecteuler.net/problem={row["ID"]}'})
+            row.update({'page_url': url})
+            data.append(row)
+
+        return data
+
+    def get_page_qty(self) -> int:
+        url = 'https://projecteuler.net/archives'
+        r = self.session.get(url)
+
+        pages = 15
+        for a in reversed(r.html.find('a')):
+            href = a.attrs['href']
+            s = re.search(r'=([0-9]*)$', href)
+            if s:
+                pages = int(s.group(1))
+                break
+        return pages
+
+    @staticmethod
+    def get_page_number_from_page_url(page_url: str):
+        p = re.search('page=([0-9]*)$', page_url)
+        if p:
+            return int(p.group(1))
+        return 1
+
+    def get_detailed_problem(self, number: int):
+        if number > len(self.problems):
+            if not self.problems:
+                page = 1
+            else:
+                page = self.get_page_number_from_page_url(self.problems['page_url']) + 1
+
+            self.update_problems(self.get_problems_on_page(page=page))
+            return self.get_detailed_problem(number)
+
+        if 'Problem' not in self.problems[number-1]:
+            details = self.get_problem_details(number)
+            self.problems[number].update(details)
+
+        return self.problems[number]
+
+    @require_login
+    def get_next_detailed_problem(self):
+        for _ in self.problems:
+            if not _['Solved']:
+                next_problem = _
+                details = self.get_problem_details(number=int(next_problem['ID']))
+                next_problem.update(details)
+                break
+        else:
+            if not self.problems:
+                page = 1
+            else:
+                page = self.get_page_number_from_page_url(self.problems[-1]['page_url']) + 1
+            self.update_problems(self.get_problems_on_page(page=page))
+            return self.get_next_detailed_problem()
+
+        return next_problem
+
+    def get_all_problems(self):
+        for page in range(1, self.get_page_qty() + 1):
+            problems = self.get_problems_on_page(page=page)
+            self.update_problems(problems)
 
 
 if __name__ == '__main__':
-    c = Client()
-    captcha = c.captcha()
-    captcha_image = io.BytesIO(captcha)
-    img = Image.open(captcha_image)
-    img.show()
-    c.login(username='limecrayon', password='stings19', captcha=captcha)
+    """ 
+    % ilr problems ---> by default gives all problems, can specify a lesser number
+    id      problem     description     solved      code
+    1       fibonacci   asdfasdf;lkj    solved      {python3.7: ''}
+    2       blah        as;dlfkjasdfj   false       {python3.7: ''}
+    ...
+    ...
+    
+    % ilr solve --> by default creates python template, at some point should be able to specify language
+    Created problem1.py file template here /users/me/problem1.py
+    For details type in % vim problem1.py
+    
+    % vim problem1.py
+    % irl submit  # looks for language provided with solve command
+    Executing problem1.py
+    Result is 100029283
 
-    # problem_1 = template(problem_number=1, problem_directory='problems')
-    # problem_1.submit(certificate_directory='certificates')
+    Please Enter Captcha: 12345
+    Submitting 100029283
+    Congratulations!  Or maybe not!
+    Updating problems.
+    
+    """
+    client = Client()
+    a = client.get_detailed_problem(number=1)
+    client.submit(2, 1)
+    client.get_all_problems()
+    print('oka')
+    # a = client.get_problem_details(15)
+    # b = client.get_problem_details(18)
+
+    # client.login(username='limecrayon', password='stings19')
+
+    # next_problem = {}
+    # for _ in all_problems:
+    #     if _['Solved']:
+    #         next_problem = client.get_problem_number(_['ID'])
+    #         _.update(next_problem)
+    #         break
+    #
+    # all_problems[next_problem['ID']] = next_problem
+
+    # client.get_problem_number(100)
+    # a = client.all_problems()
+    # now that you have the problems, you can work on one
+
+    print('ok')
