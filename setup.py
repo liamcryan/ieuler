@@ -12,11 +12,15 @@ install_requires = [
     # 'rever'  # not on pypi
 ]
 
+about = {}
+with open(os.path.join(here, 'ieuler', '__version__.py'), 'r', encoding='utf-8') as f:
+    exec(f.read(), about)
+
 with open('README.rst', 'r', encoding='utf-8') as f:
     readme = f.read()
 
 setup(name='ieuler',
-      version='0.0.0',
+      version=about['__version__'],
       description='interact with project euler',
       long_description=readme,
       author='Liam Cryan',
@@ -25,7 +29,7 @@ setup(name='ieuler',
       install_requires=install_requires,
       entry_points='''
             [console_scripts]
-            ilr=ieuler.ilr_cli:cli
+            ilr=ieuler.cli:ilr
       ''',
       include_package_data=True,
       url='https://github.com/liamcryan/ieuler',

@@ -1,5 +1,6 @@
 venv/
 .idea/
+.DS_Store
 
 *.pyc
 *.egg-info/
@@ -7,6 +8,11 @@ venv/
 .cookies
 .credentials
 .problems
+.server-problems
+
+app.py
+server.py
+
 1.py
 2.py
 3.py

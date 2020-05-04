@@ -42,7 +42,7 @@ def require_login(func):
                 click.confirm('A login is required.  Would you like to continue?', abort=True)
                 username, password = self.get_user_input_credentials()
 
-            self.login(username, password)
+            self._login(username, password)
             # after you login, you can update self.problems
 
             # save the username and password (so we don't have to keep asking)
@@ -81,8 +81,11 @@ class Client(object):
 
     def __init__(self, cookies_filename='.cookies', credentials_filename='.credentials', problems_filename='.problems'):
         self.session = requests_html.HTMLSession()
+        self.captcha = None
+
         self.cookies_filename = cookies_filename
         self.credentials_filename = credentials_filename
+        self.problems = []  # todo should not be able to set things equal to this/append data, use add_to_problems
         self.problems_filename = problems_filename
 
         cookies = None
@@ -95,40 +98,11 @@ class Client(object):
         if cookies:
             self.session.cookies.update(cookies)
 
-        self.problems = []  # todo should not be able to set things equal to this/append data, use add_to_problems
         try:
             with open(self.problems_filename, 'rt') as f:
                 self.problems = json.load(f)
         except (json.decoder.JSONDecodeError, FileNotFoundError):
             pass
-
-        self.captcha = None  # will be an object of Captcha
-
-    def update_problems(self, problems: List):
-        changes = False
-        for _ in problems:
-            if int(_['ID']) <= len(self.problems):  # todo check the logic in this if is correct
-                if _ != self.problems[int(_['ID']) - 1]:
-                    self.problems[int(_['ID']) - 1].update(_)
-                    changes = True
-            else:
-                self.problems.append(_)
-                changes = True
-
-        # overwrite (update) the saved problems
-        if changes:
-            try:
-                with open(self.problems_filename, 'rt') as f:
-                    previous_problems = json.load(f)
-            except FileNotFoundError:
-                previous_problems = []
-
-            try:
-                with open(self.problems_filename, 'wt') as f:
-                    json.dump(self.problems, f)
-            except TypeError:
-                with open(self.problems_filename, 'wt') as f:
-                    json.dump(previous_problems, f)
 
     def logged_in(self):
         r0 = self.session.get('https://projecteuler.net')
@@ -154,7 +128,7 @@ class Client(object):
         password = click.prompt('Please enter your Project Euler password', type=str, hide_input=True)
         return username, password
 
-    def login(self, username: str, password: str, captcha: Union[str, int] = None):
+    def _login(self, username: str, password: str, captcha: Union[str, int] = None):
         if not captcha:
             captcha = self.get_user_input_captcha()
 
@@ -213,7 +187,6 @@ class Client(object):
 
         # or you just now solved it
         if 'correct' in p_e.text:
-
             # call the url again with a get to get the data we are looking for
             r = self.session.get(f'https://projecteuler.net/problem={number}')
             form_e = r.html.find('form', first=True)
@@ -224,7 +197,7 @@ class Client(object):
                     'completed_on': form_e.find('span', first=True).text,
                     'Solved': True}
 
-    def get_problem_details(self, number: int):
+    def get_problem_details(self, number: int) -> Dict:
         url = f'https://projecteuler.net/problem={number}'
         r = self.session.get(url)
         if r.url != url:
@@ -244,7 +217,7 @@ class Client(object):
             'problem_url': url
         }
 
-    def get_problems_on_page(self, page: int) -> List:
+    def get_problem_list_on_page(self, page: int) -> List:
         data = []
         if page == 1:
             url = 'https://projecteuler.net/archives'
@@ -306,14 +279,10 @@ class Client(object):
         return 1
 
     def get_detailed_problem(self, number: int):
-        if number > len(self.problems):
-            if not self.problems:
-                page = 1
-            else:
-                page = self.get_page_number_from_page_url(self.problems['page_url']) + 1
-
-            self.update_problems(self.get_problems_on_page(page=page))
-            return self.get_detailed_problem(number)
+        """ Confusingly similar to get_problem_details, however, this updates self.problems """
+        last_problem_on_last_page = self.get_last_problem()
+        if number > int(last_problem_on_last_page['ID']):
+            raise ProblemDoesNotExist('Problem not yet available on Project Euler')
 
         if 'Problem' not in self.problems[number - 1]:
             details = self.get_problem_details(number)
@@ -321,25 +290,59 @@ class Client(object):
 
         return self.problems[number - 1]
 
-    @require_login
-    def get_next_detailed_problem(self):
-        for _ in self.problems:
-            if not _['Solved']:
-                next_problem = _
-                details = self.get_problem_details(number=int(next_problem['ID']))
-                next_problem.update(details)
-                break
-        else:
-            if not self.problems:
-                page = 1
+    def update_problems(self, problems: List):
+        changes = False
+        for _ in problems:
+            if int(_['ID']) <= len(self.problems):
+                if _ != self.problems[int(_['ID']) - 1]:
+                    self.problems[int(_['ID']) - 1].update(_)
+                    changes = True
             else:
-                page = self.get_page_number_from_page_url(self.problems[-1]['page_url']) + 1
-            self.update_problems(self.get_problems_on_page(page=page))
-            return self.get_next_detailed_problem()
+                self.problems.append(_)  # todo what if the problems are not sorted or there is a gap?
+                changes = True
 
-        return next_problem
+        if changes:
+            try:
+                with open(self.problems_filename, 'wt') as f:
+                    json.dump(self.problems, f)
+            except TypeError as e:
+                raise Exception(f'Problems not updated properly: {e}')
 
-    def get_all_problems(self):
+    def get_new_problems(self) -> List:
+        """ get any new problems from Project Euler """
+        last_problem_number = int(self.problems[-1]['ID'])
+        i = 1
+        new_problems = []
+        while True:
+            try:
+                new_problems.append(self.get_problem_details(number=last_problem_number + i))
+                i += 1
+            except ProblemDoesNotExist:
+                break
+        return new_problems
+
+    def get_last_problem(self) -> Dict:
+        last_page = self.get_page_qty()
+        problems = self.get_problem_list_on_page(page=last_page)
+        return problems[-1]
+
+    def get_all_problems(self) -> List:
+        all_problems = []
         for page in range(1, self.get_page_qty() + 1):
-            problems = self.get_problems_on_page(page=page)
-            self.update_problems(problems)
+            all_problems.extend(self.get_problem_list_on_page(page=page))
+        return all_problems
+
+    def update_all_problems(self) -> None:
+        all_problems = self.get_all_problems()
+        self.update_problems(all_problems)
+
+    @staticmethod
+    def get_from_ipe():
+        r = requests.get('http://127.0.0.1:5000/problems')
+        data = r.json()
+        return data
+
+    @staticmethod
+    def send_to_ipe(data):
+        r = requests.post('http://127.0.0.1:5000/problems', json=data)
+        return r.json()
