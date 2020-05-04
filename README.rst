@@ -2,7 +2,7 @@
 Interactive Project Euler
 =========================
 
-Interact with project euler via the command line.
+Interact with Project Euler https://projecteuler.net/ via the command line.
 
 The main purpose of this tool is for a dedicated place to work on your Project Euler problems.
 
