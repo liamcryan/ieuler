@@ -33,12 +33,20 @@ Here is the help::
       --help  Show this message and exit.
 
     Commands:
+      fetch   Fetch the problems from Project Euler & Interactive Project Euler.
       ls      List out the problems from Project Euler.
+      send    Send the problems to Interactive Project Euler.
       solve   Solve a problem in your language of choice.
-      status  Get the status of a problem.
       submit  Execute a file and submit its stdout to Project Euler.
+      view    View a problem and your associated code or submission information.
 
-Let's not list out all of the problems from Project Euler, but feel free to type::
+If are starting fresh, or don't have the problems saved locally, you need to fetch then::
+
+    % ilr fetch
+
+This will fetch the problems from Project Euler and Interactive Project Euler.  Interactive Project Euler doesn't exist yet, but will be a server that gets/updates problems.
+
+Now that we are set up, let's start solving.  We might want to have an idea of what the problems are.  Let's not list out all of the problems from Project Euler, but feel free to type::
 
     % ilr ls
     {
@@ -57,7 +65,7 @@ Let's not list out all of the problems from Project Euler, but feel free to type
         "Description / Title": "Largest prime factor",
     :
 
-You can use the down arrow to continue scrolling through them.  There are 703 right now.  These problems are fetched from Project Euler and stored locally in a file called .problems.
+You can use the down arrow to continue scrolling through them.  There are 704 right now.  These problems are fetched from Project Euler and stored locally in a file called .problems.
 
 Now that we have an idea of the problems we might want to work on, let's just pick problem 10 to solve::
 
@@ -123,9 +131,9 @@ It looks like the answer came out to be 0.  Let's submit to Project Euler::
     Sorry, 0 is not the answer :(
 
 
-Ok, so there it is.  0 is not the answer.  Now if we want to check the status of a submitted problem, we can run::
+Ok, so there it is.  0 is not the answer.  Now if we want to view a submitted problem, we can run::
 
-    % ilr status 10
+    % ilr view 10
     {
         "Description / Title": "Summation of primes",
         "ID": "10",
@@ -154,6 +162,12 @@ This information is saved in a file called .problems, letting you pick up from w
     10.py
 
 The file, 10.py, has been generated.
+
+If you are finished and would like to send your progress to Interactive Project Euler, you can type::
+
+    % ilr send
+
+Your progress is saved remotely.  If you want to begin again from another computer or environment, you can pick up where you left off.
 
 Roadmap
 +++++++
