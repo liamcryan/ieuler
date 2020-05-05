@@ -78,8 +78,10 @@ class LoginUnsuccessful(Exception):
 
 
 class Client(object):
+    INHERENT_FIELDS = ('ID', 'Description / Title', 'Solved By', 'problem_url', 'page_url',)
 
-    def __init__(self, cookies_filename='.cookies', credentials_filename='.credentials', problems_filename='.problems'):
+    def __init__(self, cookies_filename='.cookies', credentials_filename='.credentials', problems_filename='.problems',
+                 server_host: str = '127.0.0.1', server_port: int = 5000):
         self.session = requests_html.HTMLSession()
         self.captcha = None
 
@@ -87,6 +89,9 @@ class Client(object):
         self.credentials_filename = credentials_filename
         self.problems = []  # todo should not be able to set things equal to this/append data, use add_to_problems
         self.problems_filename = problems_filename
+
+        self.server_host = server_host
+        self.server_port = server_port
 
         cookies = None
         try:
@@ -337,13 +342,11 @@ class Client(object):
         all_problems = self.get_all_problems()
         self.update_problems(all_problems)
 
-    @staticmethod
-    def get_from_ipe():
-        r = requests.get('http://127.0.0.1:5000/problems')
+    def get_from_ipe(self):
+        r = requests.get(f'http://{self.server_host}:{self.server_port}/problems')
         data = r.json()
         return data
 
-    @staticmethod
-    def send_to_ipe(data):
-        r = requests.post('http://127.0.0.1:5000/problems', json=data)
+    def send_to_ipe(self, data):
+        r = requests.post(f'http://{self.server_host}:{self.server_port}/problems', json=data)
         return r.json()
