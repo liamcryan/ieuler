@@ -58,9 +58,13 @@ def ls(session):
 
     def _generate_output():
         for _ in session.client.problems:
-            yield json.dumps(_, sort_keys=True, indent=4)
+            display_data = {}
+            for k in _:
+                if k in ('ID', 'Description / Title', 'Solved By', 'problem_url', 'page_url',):
+                    display_data.update({k: _[k]})
+            yield json.dumps(display_data, sort_keys=True, indent=4)
 
-    click.echo_via_pager(_generate_output, color='green')
+    click.echo_via_pager(_generate_output)
 
 
 @ilr.command()
