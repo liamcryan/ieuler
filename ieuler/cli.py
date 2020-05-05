@@ -1,12 +1,14 @@
 import functools
 import json
 import os
+import random
 import subprocess
 
 import click
 import requests
 
 from ieuler.client import Client
+from ieuler.language_templates import get_template, supported_languages
 
 
 class Session(object):
@@ -92,25 +94,30 @@ def ls(session):
 
 @ilr.command()
 @click.option('--edit/--no-edit', default=True)
-@click.option('-language', nargs=1, type=str)
+@click.option('-language', nargs=1, type=str, default=None)
 @click.argument('problem-number', nargs=1, type=int, required=True)
 @click.pass_obj
 @require_fetch
 def solve(session, problem_number, language, edit):
     """ Solve a problem in your language of choice. """
 
-    # todo should check the language by running a check like python --version
-    # todo then pull in the language template
+    _supported_languages = supported_languages()
     if not language:
-        language = 'python'
-    if language != 'python':
-        click.confirm('sorry, only python right now :/. Continue?')
+        language = random.choice(_supported_languages)
+        click.confirm(
+            f'Choosing {language} by default.  Here are the supported language templates: {_supported_languages}',
+            abort=True)
+
+    language_template = get_template(language)
+    if not language_template:
+        click.echo(
+            f'sorry, could not find the language template for {language}.  Here are the supported language templates: {_supported_languages}')
+        return
 
     problem = session.client.get_detailed_problem(number=problem_number)
-
     session.client.update_problems([problem])
 
-    file_name = f'{problem["ID"]}.py'
+    file_name = f'{problem["ID"]}{language_template.extension}'
     file_content = None
     if not os.path.exists(file_name):
         # do we need to load the contents or use the default template?
@@ -120,7 +127,7 @@ def solve(session, problem_number, language, edit):
         with open(file_name, 'wt') as f:
             content = json.dumps(problem, sort_keys=True, indent=4)
             if not file_content:
-                file_content = f'"""{content}\n\n"""\n\n\ndef answer():\n    """ Solve the problem here! """\n    return 0\n\n\nif __name__ == "__main__":\n    """ Try out your code here """\n    print(answer())\n'
+                file_content = language_template.template(content)
             f.write(file_content)
 
     if edit:
