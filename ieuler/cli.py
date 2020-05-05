@@ -1,8 +1,10 @@
+import functools
 import json
 import os
 import subprocess
 
 import click
+import requests
 
 from ieuler.client import Client
 
@@ -12,6 +14,20 @@ class Session(object):
         self.client = Client()
 
 
+def require_fetch(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        session = args[0]  # notice i am assuming args[0]
+        if not session.client.problems:
+            click.echo('Please fetch problems first.')
+            return
+
+        r = func(*args, **kwargs)
+        return r
+
+    return wrapper
+
+
 @click.group()
 @click.pass_context
 def ilr(ctx):
@@ -19,18 +35,21 @@ def ilr(ctx):
 
 
 @ilr.command()
-@click.argument('url', nargs=1, type=str, required=False)
 @click.pass_obj
-def fetch(session, url):
+def fetch(session):
     """ Fetch the problems from Project Euler & Interactive Project Euler. """
     session.client.update_all_problems()
-    session.client.update_problems(session.client.get_from_ipe())
+    try:
+        ipe_problems = session.client.get_from_ipe()
+    except (requests.exceptions.ConnectionError,):
+        return
+    session.client.update_problems(ipe_problems)
 
 
 @ilr.command()
-@click.argument('url', nargs=1, type=str, required=False)
 @click.pass_obj
-def send(session, url):
+@require_fetch
+def send(session):
     """ Send the problems to Interactive Project Euler. """
     problems = []
     for _ in session.client.problems:
@@ -48,11 +67,15 @@ def send(session, url):
             problem.update({'ID': _['ID']})
             problems.append(problem)
 
-    session.client.send_to_ipe(problems)
+    try:
+        session.client.send_to_ipe(problems)
+    except (requests.exceptions.ConnectionError,) as e:
+        click.echo(f'Unable to send data to server.\n{e}')
 
 
 @ilr.command()
 @click.pass_obj
+@require_fetch
 def ls(session):
     """ List out the problems from Project Euler. """
 
@@ -60,7 +83,7 @@ def ls(session):
         for _ in session.client.problems:
             display_data = {}
             for k in _:
-                if k in ('ID', 'Description / Title', 'Solved By', 'problem_url', 'page_url',):
+                if k in Client.INHERENT_FIELDS:
                     display_data.update({k: _[k]})
             yield json.dumps(display_data, sort_keys=True, indent=4)
 
@@ -72,11 +95,9 @@ def ls(session):
 @click.option('-language', nargs=1, type=str)
 @click.argument('problem-number', nargs=1, type=int, required=True)
 @click.pass_obj
+@require_fetch
 def solve(session, problem_number, language, edit):
     """ Solve a problem in your language of choice. """
-    if not session.client.problems:
-        click.echo('Please fetch problems first.')
-        return
 
     # todo should check the language by running a check like python --version
     # todo then pull in the language template
@@ -109,11 +130,9 @@ def solve(session, problem_number, language, edit):
 @ilr.command()
 @click.argument('problem-number', nargs=1, type=int, required=True)
 @click.pass_obj
+@require_fetch
 def view(session, problem_number):
     """ View a problem and your associated code or submission information. """
-    if not session.client.problems:
-        click.echo('Please fetch problems first.')
-        return
 
     problem = session.client.problems[int(problem_number) - 1]
     click.echo(json.dumps(problem, sort_keys=True, indent=4))
@@ -123,11 +142,9 @@ def view(session, problem_number):
 @click.option('--dry/--live', default=False)
 @click.argument('problem-number', nargs=1, type=int, required=True)
 @click.pass_obj
+@require_fetch
 def submit(session, problem_number, dry):
     """ Execute a file and submit its stdout to Project Euler. """
-    if not session.client.problems:
-        click.echo('Please fetch problems first.')
-        return
 
     # todo look in the session.client.problems for the code key,
     #   get the correct filename and language
