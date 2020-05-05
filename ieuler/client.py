@@ -254,6 +254,7 @@ class Client(object):
 
             row.update({'problem_url': f'https://projecteuler.net/problem={row["ID"]}'})
             row.update({'page_url': url})
+            row.update({'ID': int(row['ID'])})
             data.append(row)
 
         return data
