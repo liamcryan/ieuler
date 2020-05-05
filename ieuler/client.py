@@ -292,7 +292,7 @@ class Client(object):
 
         if 'Problem' not in self.problems[number - 1]:
             details = self.get_problem_details(number)
-            self.problems[number].update(details)
+            self.problems[number - 1].update(details)
 
         return self.problems[number - 1]
 
