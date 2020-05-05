@@ -211,7 +211,7 @@ class Client(object):
                 problem_content = problem_content[:st + len(_)] + 'https://projecteuler.com/' + problem_content[
                                                                                                 st + len(_):]
         return {
-            'ID': number,
+            'ID': int(number),
             'Description / Title': problem_info,
             'Problem': problem_content,
             'problem_url': url

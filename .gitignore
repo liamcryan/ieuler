@@ -8,10 +8,6 @@ venv/
 .cookies
 .credentials
 .problems
-.server-problems
-
-app.py
-server.py
 
 1.py
 2.py
