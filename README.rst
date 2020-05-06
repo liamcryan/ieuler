@@ -56,7 +56,7 @@ There are a few configurations that you might want to check out::
         }
     }
 
-When you log into Project Euler (submitting problems requires a login via this tool), the credentials are saved in your working directory.  A default language is shown - this means generated files to solve will be templated in Python.  Default server information is available as well - the commands fetch and send utilize this server.
+When you log into Project Euler (submitting problems requires a login via this tool), the credentials are saved in your working directory.  A default language is shown - this means generated files to solve will be templated in Python.  Default server information is available as well. The commands fetch and send utilize this server, however, this server must be running or started by you https://github.com/liamcryan/ieuler-server.
 
 If you are starting fresh, or don't have the problems saved locally, you need to fetch them::
 
