@@ -9,7 +9,7 @@ import requests
 from ieuler.client import Client
 from ieuler.language_templates import get_template, supported_languages
 
-context_settings = {'context_settings': dict(max_content_width=120)}
+context_settings = {'context_settings': dict(max_content_width=300)}
 
 
 class Session(object):
@@ -31,9 +31,19 @@ def require_fetch(func):
     return wrapper
 
 
-@click.group()
+@click.group(**context_settings)
 @click.pass_context
 def ilr(ctx):
+    """
+     Welcome to Interactive Project Euler Command Line Tool!
+
+     Below are the commands.  For more details on a specific command you can type::
+
+         $ ilr [COMMAND] --help
+
+     Happy trails!
+
+     """
     ctx.obj = Session()
 
 
