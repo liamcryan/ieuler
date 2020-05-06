@@ -193,3 +193,5 @@ Roadmap
 I am playing around with the idea of using ttyd https://github.com/tsl0922/ttyd to make Interactive Project Euler more accessible.  ttyd will let someone access a terminal from a browser.
 
 Create a docker image with the ieuler code, and languages to execute the code.
+
+Create a site called Interactive project euler where people can use this command line tool via the browser.
