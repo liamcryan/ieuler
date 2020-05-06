@@ -4,10 +4,13 @@ venv/
 
 *.pyc
 *.egg-info/
+.pytest_cache/
 
 .cookies
 .credentials
 .problems
+.default-language
+.default-server
 
 1.*
 2.*

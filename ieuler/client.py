@@ -11,6 +11,7 @@ import requests
 import rever
 from PIL import Image
 
+from ieuler.language_templates import Python, get_template
 from ieuler.terminal_image_viewer import show_image
 
 
@@ -33,14 +34,12 @@ def require_login(func):
     def wrapper(*args, **kwargs):
         self = args[0]
         if not self.logged_in():
-            try:
-                with open(self.credentials_filename, 'rt') as f:
-                    credentials = json.load(f)
-                    username, password = credentials['username'], credentials['password']
-            except (FileNotFoundError, json.decoder.JSONDecodeError):
-                # tell the user they need to login
+            credentials = self.load_credentials()
+            if not credentials:
                 click.confirm('A login is required.  Would you like to continue?', abort=True)
                 username, password = self.get_user_input_credentials()
+            else:
+                username, password = credentials['username'], credentials['password']
 
             self._login(username, password)
             # after you login, you can update self.problems
@@ -79,35 +78,73 @@ class LoginUnsuccessful(Exception):
 
 class Client(object):
     INHERENT_FIELDS = ('ID', 'Description / Title', 'Solved By', 'problem_url', 'page_url',)
+    TEMPLATE_FIELDS = ('ID', 'Description / Title', 'problem_url', 'page_url', 'Problem',)
 
     def __init__(self, cookies_filename='.cookies', credentials_filename='.credentials', problems_filename='.problems',
-                 server_host: str = '127.0.0.1', server_port: int = 5000):
+                 default_language_filename='.default-language', default_server_filename='.default-server'):
         self.session = requests_html.HTMLSession()
         self.captcha = None
 
         self.cookies_filename = cookies_filename
         self.credentials_filename = credentials_filename
-        self.problems = []  # todo should not be able to set things equal to this/append data, use add_to_problems
         self.problems_filename = problems_filename
+        self.default_language_filename = default_language_filename
+        self.default_server_filename = default_server_filename
 
-        self.server_host = server_host
-        self.server_port = server_port
+        self.problems = self.load_problems()
+        self.language_template = self.load_language_template() or Python()
 
-        cookies = None
+        server = self.load_server_config()
+        self.server_host = server.get('host', '127.0.0.1')
+        self.server_port = server.get('port', 5000)
+
+        self.session.cookies.update(self.load_cookies())
+
+    def load_language_template(self):
+        try:
+            with open(self.default_language_filename, 'rt') as f:
+                return get_template(json.load(f).get('language'))
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            return None
+
+    def set_language(self, language):
+        self.language_template = get_template(language)
+        with open(self.default_language_filename, 'wt') as f:
+            json.dump({'language': language}, f)
+
+    def load_server_config(self):
+        try:
+            with open(self.default_server_filename, 'rt') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            return {}
+
+    def set_server_config(self, host: str, port: int):
+        self.server_host = host or self.server_host
+        self.server_port = port or self.server_port
+        with open(self.default_server_filename, 'wt') as f:
+            json.dump({'host': self.server_host, 'port': self.server_port}, f)
+
+    def load_cookies(self):
         try:
             with open(self.cookies_filename, 'rt') as f:
-                cookies = json.load(f)
+                return json.load(f)
         except (FileNotFoundError, json.decoder.JSONDecodeError):
-            pass
+            return {}
 
-        if cookies:
-            self.session.cookies.update(cookies)
-
+    def load_problems(self):
         try:
             with open(self.problems_filename, 'rt') as f:
-                self.problems = json.load(f)
+                return json.load(f)
         except (json.decoder.JSONDecodeError, FileNotFoundError):
-            pass
+            return []
+
+    def load_credentials(self):
+        try:
+            with open(self.credentials_filename, 'rt') as f:
+                return json.load(f)
+        except (FileNotFoundError, json.decoder.JSONDecodeError):
+            return {}
 
     def logged_in(self):
         r0 = self.session.get('https://projecteuler.net')
@@ -284,35 +321,18 @@ class Client(object):
             return int(p.group(1))
         return 1
 
-    def get_detailed_problem(self, number: int):
-        """ Confusingly similar to get_problem_details, however, this updates self.problems """
-        last_problem_on_last_page = self.get_last_problem()
-        if number > int(last_problem_on_last_page['ID']):
-            raise ProblemDoesNotExist('Problem not yet available on Project Euler')
-
-        if 'Problem' not in self.problems[number - 1]:
-            details = self.get_problem_details(number)
-            self.problems[number - 1].update(details)
-
-        return self.problems[number - 1]
-
     def update_problems(self, problems: List):
-        changes = False
         for _ in problems:
             if int(_['ID']) <= len(self.problems):
-                if _ != self.problems[int(_['ID']) - 1]:
-                    self.problems[int(_['ID']) - 1].update(_)
-                    changes = True
+                self.problems[int(_['ID']) - 1].update(_)
             else:
                 self.problems.append(_)  # todo what if the problems are not sorted or there is a gap?
-                changes = True
 
-        if changes:
-            try:
-                with open(self.problems_filename, 'wt') as f:
-                    json.dump(self.problems, f)
-            except TypeError as e:
-                raise Exception(f'Problems not updated properly: {e}')
+        try:
+            with open(self.problems_filename, 'wt') as f:
+                json.dump(self.problems, f)
+        except TypeError as e:
+            raise Exception(f'Problems not updated properly: {e}')
 
     def get_new_problems(self) -> List:
         """ get any new problems from Project Euler """

@@ -4,3 +4,5 @@ numpy
 requests
 requests_html
 git+https://github.com/liamcryan/rever
+pytest
+coverage

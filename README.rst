@@ -33,6 +33,7 @@ Here is the help::
       --help  Show this message and exit.
 
     Commands:
+      config  Get or set configuration options.
       fetch   Fetch the problems from Project Euler & Interactive Project Euler.
       ls      List out the problems from Project Euler.
       send    Send the problems to Interactive Project Euler.
@@ -40,11 +41,28 @@ Here is the help::
       submit  Execute a file and submit its stdout to Project Euler.
       view    View a problem and your associated code or submission information.
 
-If are starting fresh, or don't have the problems saved locally, you need to fetch then::
+There are a few configurations that you might want to check out::
+
+    % ilr config
+    {
+        "credentials": {
+            "password": "*******",
+            "username": "limecrayon"
+        },
+        "language": "python",
+        "server": {
+            "host": "127.0.0.1",
+            "port": 5000
+        }
+    }
+
+When you log into Project Euler (submitting problems requires a login via this tool), the credentials are saved in your working directory.  A default language is shown - this means generated files to solve will be templated in Python.  Default server information is available as well - the commands fetch and send utilize this server.
+
+If you are starting fresh, or don't have the problems saved locally, you need to fetch them::
 
     % ilr fetch
 
-This will fetch the problems from Project Euler and Interactive Project Euler.  Interactive Project Euler doesn't exist yet, but will be a server that gets/updates problems.
+This will fetch the problems from Project Euler and Interactive Project Euler.  Interactive Project Euler doesn't exist yet, but will be a server that gets/updates the code and notes you have worked on for a given problem.
 
 Now that we are set up, let's start solving.  We might want to have an idea of what the problems are.  Let's not list out all of the problems from Project Euler, but feel free to type::
 
@@ -175,8 +193,3 @@ Roadmap
 I am playing around with the idea of using ttyd https://github.com/tsl0922/ttyd to make Interactive Project Euler more accessible.  ttyd will let someone access a terminal from a browser.
 
 Create a docker image with the ieuler code, and languages to execute the code.
-
-Create templates for other languages (see the language option in ilr solve)
-
-Create a server command so that calls to client.update_problems will update the problems on a remote server as well.  This would be cool because someone could hop into the terminal via browser, do some solving, close the browser, and the work would still be saved remotely.
-
