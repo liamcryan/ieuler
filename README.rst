@@ -179,7 +179,7 @@ This information is saved in a file called .problems, letting you pick up from w
     % ls
     10.py
 
-The file, 10.py, has been generated.
+The file, 10.py, is exactly what you just deleted.
 
 If you are finished and would like to send your progress to Interactive Project Euler, you can type::
 
