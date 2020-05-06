@@ -128,7 +128,7 @@ Now that we have an idea of the problems we might want to work on, let's just pi
     "10.py" 20L, 557C
 
 
-So we are asking to solve problem 10 using Python.  What happened is a .py file is created with a basic template for coding up an answer and printing the answer to stdout.  Also, the file opens in vim so you can edit it.  Don't feel like you need to edit it here; you can always open up the file (10.py in this case) in an editor of your choice.
+So we are asking to solve problem 10 using Python.  What happened is a .py file is created with a basic template for coding up an answer and printing the answer to stdout.  Also, the file opens in a default editor so you can edit it.  Don't feel like you need to edit it here; you can always open up the file (10.py in this case) in an editor of your choice.
 
 Once you are happy with the code you have written you will want to run it.  Save the changes to the file then, for this example::
 
