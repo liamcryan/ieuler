@@ -354,8 +354,9 @@ class Client(object):
 
     def get_all_problems(self) -> List:
         all_problems = []
-        for page in range(1, self.get_page_qty() + 1):
-            all_problems.extend(self.get_problem_list_on_page(page=page))
+        with click.progressbar(range(1, self.get_page_qty() + 1), label='Fetching problems from Project Euler.') as bar:
+            for page in bar:
+                all_problems.extend(self.get_problem_list_on_page(page=page))
         return all_problems
 
     def update_all_problems(self) -> None:
