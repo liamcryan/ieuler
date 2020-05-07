@@ -35,14 +35,13 @@ def require_fetch(func):
 @click.pass_context
 def ilr(ctx):
     """
-     Welcome to Interactive Project Euler Command Line Tool!
+    Welcome to Interactive Project Euler Command Line Tool!
 
-     Below are the commands.  For more details on a specific command you can type::
+    Below are the commands.  For more details on a specific command you can type:
 
-         $ ilr [COMMAND] --help
+    $ ilr [COMMAND] --help
 
-     Happy trails!
-
+    Happy trails!
      """
     ctx.obj = Session()
 
@@ -66,7 +65,7 @@ def config(session, language, host, port):
 
     d = {}
     c = session.client.load_credentials()
-    d.update({'credentials': {'username': c['username'], 'password': '*******'}})
+    d.update({'credentials': {'username': c.get('username'), 'password': '*******'}})
     d.update({'server': {'host': session.client.server_host, 'port': session.client.server_port}})
     d.update({'language': session.client.language_template.language})
     click.echo(json.dumps(d, sort_keys=True, indent=4))

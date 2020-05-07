@@ -20,7 +20,7 @@ class Template(object):
 
 class Python(Template):
     def __init__(self):
-        super().__init__(language='python', extension='.py')
+        super().__init__(language='python3', extension='.py')
 
     def template(self, content):
         return f'"""{content}\n\n"""\n\n\ndef answer():\n    """ Solve the problem here! Make sure to return the answer. """\n    return 0\n\n\nif __name__ == "__main__":\n    """ Below is OK to leave alone """\n    print(answer())\n'
