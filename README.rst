@@ -19,6 +19,17 @@ Currently available at github.  One dependency is not yet on pypi so it must be 
     % pip install git+https://github.com/liamcryan/rever.git
 
 
+Or you can use Docker after cloning this repo::
+
+    % git clone https://github.com/liamcryan/ieuler.git
+    Cloning into 'ieuler'...
+    ...
+    ...
+    % cd ieuler
+    % docker-compose run --rm ieuler
+
+
+
 Quickstart
 ++++++++++
 
