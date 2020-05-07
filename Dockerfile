@@ -10,7 +10,8 @@ RUN apt-get update -y \
     && pip3 install --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --trusted-host pypi.org git+https://github.com/liamcryan/rever.git \
     && apt-get install curl -y \
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
-    && apt-get install nodejs -y
+    && apt-get install nodejs -y \
+    && apt-get install ruby -y
 
 RUN useradd -ms /bin/bash -d /usr/local/ieuler ieuler \
     && chown -R ieuler: /usr/local/ieuler
