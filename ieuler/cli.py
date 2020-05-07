@@ -6,7 +6,7 @@ import subprocess
 import click
 import requests
 
-from ieuler.client import Client
+from ieuler.client import Client, LoginUnsuccessful
 from ieuler.language_templates import get_template, supported_languages
 
 context_settings = {'context_settings': dict(max_content_width=300)}
@@ -65,7 +65,9 @@ def config(session, language, host, port):
 
     d = {}
     c = session.client.load_credentials()
-    d.update({'credentials': {'username': c.get('username'), 'password': '*******'}})
+    if 'password' in c:
+        c['password'] = '*******'
+    d.update({'credentials': c})
     d.update({'server': {'host': session.client.server_host, 'port': session.client.server_port}})
     d.update({'language': session.client.language_template.language})
     click.echo(json.dumps(d, sort_keys=True, indent=4))
@@ -262,9 +264,10 @@ def submit(session, problem_number, dry, language):
         if language:
             submission_language = language
         else:
-            click.confirm(
-                f'You have solved this problem in {len(submissions)} languages.  Submission will be in {submission_language}. Next time specify -language or continue.',
-                abort=True)
+            if submission_language != session.client.language_template.language:
+                click.confirm(
+                    f'You have solved this problem in {len(submissions)} languages.  Submission will be in {submission_language}. Next time specify -language or continue.',
+                    abort=True)
     else:
         submission_language = _language[0]
 
@@ -295,7 +298,12 @@ def submit(session, problem_number, dry, language):
         return
 
     # here we will submit to Project Euler
-    response = session.client.submit(problem_number, answer)
+    try:
+        response = session.client.submit(problem_number, answer)
+    except LoginUnsuccessful as e:
+        click.echo(e)
+        return
+
     problem.update(response)
 
     # update code if successful (if execution makes it here)
