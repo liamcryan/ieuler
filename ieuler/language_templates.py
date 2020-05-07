@@ -31,4 +31,12 @@ class Node(Template):
         super().__init__(language='node', extension='.js')
 
     def template(self, content):
-        return f'/*{content}\n\n*/\n\n\nfunction answer() {{\n    // Solve the problem here! Make sure to return the answer. \n    return 0\n}}\n\n\n// Below is OK to leave alone \nconsole.log(answer())\n'
+        return f'/*{content}\n\n*/\n\n\nfunction answer() {{\n    // Solve the problem here! Make sure to return the answer. \n    return 0\n}}\n\n\n// Below is OK to leave alone\nconsole.log(answer())\n'
+
+
+class Ruby(Template):
+    def __init__(self):
+        super().__init__(language='ruby', extension='.rb')
+
+    def template(self, content):
+        return f'<<-DOC\n{content}\n\nDOC\n\n\ndef answer()\n    # Solve the problem here! Make sure to return the answer.\n    return 0\nend\n\n\n Below is OK to leave alone\n puts answer()'
