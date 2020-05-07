@@ -11,7 +11,8 @@ RUN apt-get update -y \
     && apt-get install curl -y \
     && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && apt-get install nodejs -y \
-    && apt-get install ruby -y
+    && apt-get install ruby -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install php -y
 
 RUN useradd -ms /bin/bash -d /usr/local/ieuler ieuler \
     && chown -R ieuler: /usr/local/ieuler
