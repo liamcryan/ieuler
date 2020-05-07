@@ -47,7 +47,7 @@ def ilr(ctx):
 
 
 @ilr.command(**context_settings)
-@click.option('-language', type=str, nargs=1)
+@click.option('-language', type=str, nargs=1, help=f'Set language from: {supported_languages()}')
 @click.option('-host', type=str, nargs=1)
 @click.option('-port', type=int, nargs=1)
 @click.pass_obj
@@ -142,7 +142,7 @@ def view(session, problem_number):
 
 @ilr.command(**context_settings)
 @click.option('--edit/--no-edit', default=True)
-@click.option('-language', nargs=1, type=str, default=None)
+@click.option('-language', nargs=1, type=str, default=None, help=f'Choose from: {supported_languages()}')
 @click.argument('problem-number', nargs=1, type=int, required=True)
 @click.pass_obj
 @require_fetch
@@ -219,8 +219,9 @@ def solve(session, problem_number, language, edit):
 
 
 @ilr.command(**context_settings)
-@click.option('-language', type=str, nargs=1)
-@click.option('--dry/--live', default=False)
+@click.option('-language', type=str, nargs=1, help=f'Choose from: {supported_languages()}')
+@click.option('--dry/--live', default=False,
+              help=f'The --dry option will execute your file but not submit to Project Euler.')
 @click.argument('problem-number', nargs=1, type=int, required=True)
 @click.pass_obj
 @require_fetch
