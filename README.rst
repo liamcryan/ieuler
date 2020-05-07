@@ -19,7 +19,7 @@ Features
 Installation
 ++++++++++++
 
-Currently available at github.  One dependency is not yet on pypi so it must be installed separately from github as well::
+Friends of Python can type this::
 
     % pip install git+https://github.com/liamcryan/ieuler.git
     Collecting git+https://github.com/liamcryan/ieuler.git
