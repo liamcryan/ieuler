@@ -1,0 +1,6 @@
+version: "3"
+
+services:
+  ieuler:
+    build: .
+    entrypoint: ["/bin/bash"]
