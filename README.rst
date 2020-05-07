@@ -12,7 +12,7 @@ Features
 
 - Solve problems from starter template files in multiple languages.
 
-- Submit answers to your Project Euler account.
+- Submit answers directly to your Project Euler account.
 
 - Save work locally or to an Interactive Project Euler Server.
 
