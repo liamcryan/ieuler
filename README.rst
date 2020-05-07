@@ -26,6 +26,7 @@ Or you can use Docker after cloning this repo::
     ...
     ...
     % cd ieuler
+    % docker-compose build
     % docker-compose run --rm ieuler
 
 
