@@ -39,4 +39,4 @@ class Ruby(Template):
         super().__init__(language='ruby', extension='.rb')
 
     def template(self, content):
-        return f'<<-DOC\n{content}\n\nDOC\n\n\ndef answer()\n    # Solve the problem here! Make sure to return the answer.\n    return 0\nend\n\n\n Below is OK to leave alone\n puts answer()'
+        return f'<<-DOC\n{content}\n\nDOC\n\n\ndef answer()\n    # Solve the problem here! Make sure to return the answer.\n    return 0\nend\n\n\n# Below is OK to leave alone\n puts answer()'
