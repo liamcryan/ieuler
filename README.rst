@@ -4,7 +4,17 @@ Interactive Project Euler
 
 Interact with Project Euler https://projecteuler.net/ via the command line.
 
-The main purpose of this tool is for a dedicated place to work on your Project Euler problems.
+
+Features
+++++++++
+
+- Fetch and view problems from Project Euler.
+
+- Solve problems from starter template files in multiple languages.
+
+- Submit answers to your Project Euler account.
+
+- Save work locally or to an Interactive Project Euler Server.
 
 Installation
 ++++++++++++
