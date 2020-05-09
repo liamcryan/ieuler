@@ -90,6 +90,8 @@ def fetch(session):
 @require_fetch
 def send(session):
     """ Send the problems to Interactive Project Euler.  See config for default server. """
+    click.echo('Sorry, this is still a work in progress...functionality yet to come.')
+    return
     problems = []
     for _ in session.client.problems:
         problem = {}
