@@ -146,11 +146,23 @@ class Client(object):
         except (FileNotFoundError, json.decoder.JSONDecodeError):
             return {}
 
-    def logged_in(self):
+    def logged_in(self, username: str = None, cookies: Dict = None):
+
+        if cookies:
+            self.session.cookies.update(cookies)
+
         r0 = self.session.get('https://projecteuler.net')
-        for _ in r0.html.find('a'):
-            if _.attrs.get('title') == 'Sign Out':
-                return True
+        # check user is logged in as username
+        info = r0.html.find('#info_panel', first=True)
+        name = info.find('strong', first=True)
+        if name:  # someone is logged in
+            if username:  # if we want to check a specific username is logged in
+                if username == name.text:
+                    return True
+                else:
+                    return False
+            return True
+
         return False
 
     @rever.rever(exception=(requests.exceptions.ConnectionError,))
