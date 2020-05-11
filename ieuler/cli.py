@@ -75,14 +75,23 @@ def config(session, language, host, port):
 
 @ilr.command(**context_settings)
 @click.pass_obj
+def logout(session):
+    """ Log out of Project Euler. """
+    session.client.logout()
+    if session.client.logged_in():
+        click.echo('Unable to log out :(')
+    else:
+        click.echo('Logged out successfully.')
+
+
+@ilr.command(**context_settings)
+@click.pass_obj
 def fetch(session):
     """ Fetch the problems from Project Euler & Interactive Project Euler. See config for default server. """
     session.client.update_all_problems()
-    try:
-        ipe_problems = session.client.get_from_ipe()
-    except (requests.exceptions.ConnectionError,):
-        return
-    session.client.update_problems(ipe_problems)
+    # commenting this out for now until ieuler-server is more developed
+    # ipe_problems = session.client.get_from_ipe()
+    # session.client.update_problems(ipe_problems)
 
 
 @ilr.command(**context_settings)
@@ -91,27 +100,28 @@ def fetch(session):
 def send(session):
     """ Send the problems to Interactive Project Euler.  See config for default server. """
     click.echo('Sorry, this is still a work in progress...functionality yet to come.')
-    return
-    problems = []
-    for _ in session.client.problems:
-        problem = {}
-        if 'code' in _:
-            problem.update({'code': _['code']})
-        if 'Solved' in _:
-            problem.update({'Solved': _['Solved']})
-        if 'completed_on' in _:
-            problem.update({'completed_on': _['completed_on']})
-        if 'correct_answer' in _:
-            problem.update({'correct_answer': _['correct_answer']})
-
-        if problem:
-            problem.update({'ID': _['ID']})
-            problems.append(problem)
-
-    try:
-        session.client.send_to_ipe(problems)
-    except (requests.exceptions.ConnectionError,) as e:
-        click.echo(f'Unable to send data to server.\n{e}')
+    # commenting out for now
+    # return
+    # problems = []
+    # for _ in session.client.problems:
+    #     problem = {}
+    #     if 'code' in _:
+    #         problem.update({'code': _['code']})
+    #     if 'Solved' in _:
+    #         problem.update({'Solved': _['Solved']})
+    #     if 'completed_on' in _:
+    #         problem.update({'completed_on': _['completed_on']})
+    #     if 'correct_answer' in _:
+    #         problem.update({'correct_answer': _['correct_answer']})
+    #
+    #     if problem:
+    #         problem.update({'ID': _['ID']})
+    #         problems.append(problem)
+    #
+    # try:
+    #     session.client.send_to_ipe(problems)
+    # except (requests.exceptions.ConnectionError,) as e:
+    #     click.echo(f'Unable to send data to server.\n{e}')
 
 
 @ilr.command(**context_settings)

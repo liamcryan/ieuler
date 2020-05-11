@@ -153,6 +153,13 @@ class Client(object):
                 return True
         return False
 
+    @rever.rever(exception=(requests.exceptions.ConnectionError,))
+    def logout(self):
+        r0 = self.session.get('https://projecteuler.net')
+        for _ in r0.html.find('a'):
+            if _.attrs.get('title') == 'Sign Out':
+                self.session.get(f'https://projecteuler.net/{_.attrs["href"]}')
+
     def get_captcha_raw(self) -> bytes:
         captcha_url = f'https://projecteuler.net/captcha/show_captcha.php?{random.random()}'
         r2 = self.session.get(captcha_url)

@@ -57,6 +57,7 @@ Here is the help::
     Commands:
       config  Get or set configuration options.
       fetch   Fetch the problems from Project Euler & Interactive Project Euler.
+      logout  Log out of Project Euler.
       ls      List out the problems from Project Euler.
       send    Send the problems to Interactive Project Euler.
       solve   Solve a problem in your language of choice.
