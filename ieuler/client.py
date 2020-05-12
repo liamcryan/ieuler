@@ -44,6 +44,9 @@ def require_login(func):
 
             self._login(username, password)
             # after you login, you can update self.problems
+            if not self.logged_in():
+                click.echo('Sorry, the username/password was not right.')
+                return
 
             # save the username and password (so we don't have to keep asking)
             with open(self.credentials_filename, 'wt') as f:
@@ -166,6 +169,7 @@ class Client(object):
             if _.attrs.get('title') == 'Sign Out':
                 self.session.get(f'https://projecteuler.net/{_.attrs["href"]}')
 
+    @rever.rever(exception=(requests.exceptions.ConnectionError,))
     def get_captcha_raw(self) -> bytes:
         captcha_url = f'https://projecteuler.net/captcha/show_captcha.php?{random.random()}'
         r2 = self.session.get(captcha_url)
@@ -381,6 +385,8 @@ class Client(object):
         username = self.load_credentials()['username']
         cookies = self.load_cookies()
         r = requests.get(f'http://{self.server_host}:{self.server_port}/', auth=(username, json.dumps(cookies)))
+        if r.status_code == 401:
+            raise LoginUnsuccessful('Unable to login to ieuler-server.')
         return r.json()
 
     @require_login
@@ -389,4 +395,6 @@ class Client(object):
         cookies = self.load_cookies()
         r = requests.post(f'http://{self.server_host}:{self.server_port}/', json=data,
                           auth=(username, json.dumps(cookies)))
+        if r.status_code == 401:
+            raise LoginUnsuccessful('Unable to login to ieuler-server.')
         return r.json()

@@ -6,7 +6,7 @@ import subprocess
 import click
 import requests
 
-from ieuler.client import Client, LoginUnsuccessful
+from ieuler.client import Client, LoginUnsuccessful, BadCaptcha
 from ieuler.language_templates import get_template, supported_languages
 
 context_settings = {'context_settings': dict(max_content_width=300)}
@@ -89,10 +89,13 @@ def logout(session):
 def fetch(session):
     """ Fetch the problems from Project Euler & Interactive Project Euler. See config for default server. """
     session.client.update_all_problems()
-    ipe_problems = session.client.get_from_ipe()
     try:
-        session.client.update_problems(ipe_problems)
-    except (requests.exceptions.ConnectionError,):
+        ipe_problems = session.client.get_from_ipe()
+        if ipe_problems:
+            session.client.update_problems(ipe_problems)
+            click.echo('Fetched problems from Project Euler and ieuler-server successfully.')
+
+    except (requests.exceptions.ConnectionError, BadCaptcha, LoginUnsuccessful):
         click.echo(
             f'Unable to get your work from ieuler-server: http://{session.client.server_host}:{session.client.server_port}/')
 
