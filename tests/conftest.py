@@ -3,6 +3,8 @@ import os
 import tempfile
 
 import pytest
+from click.testing import CliRunner
+
 from ieuler.client import Client
 
 
@@ -16,6 +18,20 @@ def default_client():
     for _ in d:
         os.close(_[0])
         os.unlink(_[1])
+
+
+@pytest.fixture
+def default_session(default_client):
+    class Session(object):
+        def __init__(self):
+            self.client = default_client
+
+    return Session()
+
+
+@pytest.fixture
+def runner():
+    return CliRunner()
 
 
 @pytest.fixture
