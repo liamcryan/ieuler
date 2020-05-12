@@ -122,7 +122,7 @@ def send(session):
         session.client.send_to_ipe(problems)
     except (requests.exceptions.ConnectionError,):
         click.echo(
-            f'Unable to send data to ieuler-server: http://{session.client.server_host}:{session.client.server_port}')
+            f'Unable to send data to ieuler-server: http://{session.client.server_host}:{session.client.server_port}/')
 
 
 @ilr.command(**context_settings)

@@ -1,6 +1,7 @@
 import functools
-import json
 import io
+import json
+import os
 import random
 import re
 from typing import Union, Tuple, List, Dict
@@ -81,7 +82,7 @@ class Client(object):
     TEMPLATE_FIELDS = ('ID', 'Description / Title', 'problem_url', 'page_url', 'Problem',)
 
     def __init__(self, cookies_filename='.cookies', credentials_filename='.credentials', problems_filename='.problems',
-                 default_language_filename='.default-language', default_server_filename='.default-server'):
+                 default_language_filename='.default-language'):
         self.session = requests_html.HTMLSession()
         self.captcha = None
 
@@ -89,14 +90,13 @@ class Client(object):
         self.credentials_filename = credentials_filename
         self.problems_filename = problems_filename
         self.default_language_filename = default_language_filename
-        self.default_server_filename = default_server_filename
 
         self.problems = self.load_problems()
         self.language_template = self.load_language_template() or Python()
 
-        server = self.load_server_config()
-        self.server_host = server.get('host', '127.0.0.1')
-        self.server_port = server.get('port', 5000)
+        self.server_host = os.getenv('IEULER_SERVER_HOST') or '127.0.0.1'
+        self.server_port = os.getenv('IEULER_SERVER_PORT') or 5000
+        self.server_port = int(self.server_port)
 
         self.session.cookies.update(self.load_cookies())
 
@@ -112,18 +112,11 @@ class Client(object):
         with open(self.default_language_filename, 'wt') as f:
             json.dump({'language': language}, f)
 
-    def load_server_config(self):
-        try:
-            with open(self.default_server_filename, 'rt') as f:
-                return json.load(f)
-        except (FileNotFoundError, json.decoder.JSONDecodeError):
-            return {}
-
     def set_server_config(self, host: str, port: int):
-        self.server_host = host or self.server_host
-        self.server_port = port or self.server_port
-        with open(self.default_server_filename, 'wt') as f:
-            json.dump({'host': self.server_host, 'port': self.server_port}, f)
+        self.server_host = host
+        self.server_port = port
+        os.environ['IEULER_SERVER_HOST'] = host
+        os.environ['IEULER_SERVER_PORT'] = str(port)
 
     def load_cookies(self):
         try:
@@ -383,11 +376,16 @@ class Client(object):
         all_problems = self.get_all_problems()
         self.update_problems(all_problems)
 
+    @require_login
     def get_from_ipe(self):
-        r = requests.get(f'http://{self.server_host}:{self.server_port}/problems')
-        data = r.json()
-        return data
+        username = self.load_credentials()['username']
+        cookies = self.load_cookies()
+        r = requests.get(f'http://{self.server_host}:{self.server_port}/', auth=(username, cookies))
+        return r.json()
 
+    @require_login
     def send_to_ipe(self, data):
-        r = requests.post(f'http://{self.server_host}:{self.server_port}/problems', json=data)
+        username = self.load_credentials()['username']
+        cookies = self.load_cookies()
+        r = requests.post(f'http://{self.server_host}:{self.server_port}/', json=data, auth=(username, cookies))
         return r.json()
