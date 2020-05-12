@@ -380,12 +380,13 @@ class Client(object):
     def get_from_ipe(self):
         username = self.load_credentials()['username']
         cookies = self.load_cookies()
-        r = requests.get(f'http://{self.server_host}:{self.server_port}/', auth=(username, cookies))
+        r = requests.get(f'http://{self.server_host}:{self.server_port}/', auth=(username, json.dumps(cookies)))
         return r.json()
 
     @require_login
     def send_to_ipe(self, data):
         username = self.load_credentials()['username']
         cookies = self.load_cookies()
-        r = requests.post(f'http://{self.server_host}:{self.server_port}/', json=data, auth=(username, cookies))
+        r = requests.post(f'http://{self.server_host}:{self.server_port}/', json=data,
+                          auth=(username, json.dumps(cookies)))
         return r.json()
