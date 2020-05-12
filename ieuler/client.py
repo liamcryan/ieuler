@@ -45,8 +45,7 @@ def require_login(func):
             self._login(username, password)
             # after you login, you can update self.problems
             if not self.logged_in():
-                click.echo('Sorry, the username/password was not right.')
-                return
+                raise LoginUnsuccessful('Sorry, the username/password is not right.')
 
             # save the username and password (so we don't have to keep asking)
             with open(self.credentials_filename, 'wt') as f:

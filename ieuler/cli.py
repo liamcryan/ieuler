@@ -6,7 +6,7 @@ import subprocess
 import click
 import requests
 
-from ieuler.client import Client, LoginUnsuccessful, BadCaptcha
+from ieuler.client import Client, LoginUnsuccessful, BadCaptcha, require_login
 from ieuler.language_templates import get_template, supported_languages
 
 context_settings = {'context_settings': dict(max_content_width=300)}
@@ -86,18 +86,43 @@ def logout(session):
 
 @ilr.command(**context_settings)
 @click.pass_obj
-def fetch(session):
-    """ Fetch the problems from Project Euler & Interactive Project Euler. See config for default server. """
-    session.client.update_all_problems()
-    try:
-        ipe_problems = session.client.get_from_ipe()
-        if ipe_problems:
-            session.client.update_problems(ipe_problems)
-            click.echo('Fetched problems from Project Euler and ieuler-server successfully.')
+def login(session):
+    """ Explicitly log in to Project Euler. """
 
-    except (requests.exceptions.ConnectionError, BadCaptcha, LoginUnsuccessful):
-        click.echo(
-            f'Unable to get your work from ieuler-server: http://{session.client.server_host}:{session.client.server_port}/')
+    @require_login
+    def f(client):
+        pass
+
+    try:
+        f(session.client)
+        click.echo('Logged in successfully.')
+    except LoginUnsuccessful as e:
+        click.echo(e)
+
+
+@ilr.command(**context_settings)
+@click.option('--update-from-project-euler/--skip-pe-update', default=True)
+@click.option('--update-from-ieuler-server/--skip-ipe-update', default=True)
+@click.pass_obj
+def fetch(session, update_from_project_euler, update_from_ieuler_server):
+    """ Fetch the problems from Project Euler & Interactive Project Euler. See config for default server. """
+    if update_from_project_euler:
+        session.client.update_all_problems()
+
+    if update_from_ieuler_server:
+        try:
+            ipe_problems = session.client.get_from_ipe()
+            click.echo('Fetched problems from ieuler-server successfully.')
+            if ipe_problems:
+                session.client.update_problems(ipe_problems)
+
+        except BadCaptcha as e:
+            click.echo(e)
+        except LoginUnsuccessful as e:
+            click.echo(e)
+        except requests.exceptions.ConnectionError:
+            click.echo(
+                f'Unable to get your work from ieuler-server: http://{session.client.server_host}:{session.client.server_port}/')
 
 
 @ilr.command(**context_settings)
@@ -108,24 +133,33 @@ def send(session):
     problems = []
     for _ in session.client.problems:
         problem = {}
+        # save problems for which there is code
         if 'code' in _:
             problem.update({'code': _['code']})
-        if 'Solved' in _:
             problem.update({'Solved': _['Solved']})
-        if 'completed_on' in _:
-            problem.update({'completed_on': _['completed_on']})
-        if 'correct_answer' in _:
-            problem.update({'correct_answer': _['correct_answer']})
+            problem.update({'completed_on': _.get('completed_on')})
+            problem.update({'correct_answer': _.get('correct_answer')})
 
         if problem:
             problem.update({'ID': _['ID']})
             problems.append(problem)
 
     try:
-        session.client.send_to_ipe(problems)
-    except (requests.exceptions.ConnectionError,):
+        if not problems:
+            click.echo('No work to send.  Try ilr solve.')
+        else:
+            r = session.client.send_to_ipe(problems)
+            if r:
+                click.echo('Response:')
+                click.echo(json.dumps(r, sort_keys=True, indent=4))
+
+    except BadCaptcha as e:
+        click.echo(e)
+    except LoginUnsuccessful as e:
+        click.echo(e)
+    except requests.exceptions.ConnectionError:
         click.echo(
-            f'Unable to send data to ieuler-server: http://{session.client.server_host}:{session.client.server_port}/')
+            f'Unable to send your work to ieuler-server: http://{session.client.server_host}:{session.client.server_port}/')
 
 
 @ilr.command(**context_settings)
