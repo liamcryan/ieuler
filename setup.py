@@ -9,7 +9,7 @@ install_requires = [
     'Pillow',
     'numpy',
     'requests-html',
-    # 'rever'  # not on pypi
+    'rever'
 ]
 
 about = {}

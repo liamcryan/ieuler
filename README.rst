@@ -14,7 +14,7 @@ Features
 
 - Submit answers directly to your Project Euler account.
 
-- Save work locally or to an Interactive Project Euler Server.
+- Save work locally or to an ieuler-server: https://github.com/liamcryan/ieuler-server.
 
 Installation
 ++++++++++++
@@ -26,7 +26,6 @@ Friends of Python can type this::
     Cloning https://github.com/liamcryan/ieuler.git to /private/var/folders/p2/lmvnwvb554992_wcsc5rh6kw0000gn/T/pip-req-build-6hjf9n9_
     ...
     ...
-    % pip install git+https://github.com/liamcryan/rever.git
 
 
 Or you can use Docker after cloning this repo::
@@ -51,12 +50,21 @@ Here is the help::
     % ilr --help
     Usage: ilr [OPTIONS] COMMAND [ARGS]...
 
+      Welcome to Interactive Project Euler Command Line Tool!
+
+      Below are the commands.  For more details on a specific command you can type:
+
+      $ ilr [COMMAND] --help
+
+      Happy trails!
+
     Options:
       --help  Show this message and exit.
 
     Commands:
       config  Get or set configuration options.
       fetch   Fetch the problems from Project Euler & Interactive Project Euler.
+      login   Explicitly log in to Project Euler.
       logout  Log out of Project Euler.
       ls      List out the problems from Project Euler.
       send    Send the problems to Interactive Project Euler.
@@ -68,10 +76,7 @@ There are a few configurations that you might want to check out::
 
     % ilr config
     {
-        "credentials": {
-            "password": "*******",
-            "username": "limecrayon"
-        },
+        "credentials": {},
         "language": "python",
         "server": {
             "host": "127.0.0.1",
@@ -79,13 +84,13 @@ There are a few configurations that you might want to check out::
         }
     }
 
-When you log into Project Euler (submitting problems requires a login via this tool), the credentials are saved in your working directory.  A default language is shown - this means generated files to solve will be templated in Python.  Default server information is available as well. The commands fetch and send utilize this server, however, this server must be running or started by you https://github.com/liamcryan/ieuler-server.
+Credentials are empty but will be saved locally the first time you need to log into Project Euler.  When you log into Project Euler (submitting problems requires a login via this tool), the credentials are saved in your working directory.  A default language is shown - this means generated files to solve will be templated in Python.  Default server information is available as well. The commands fetch and send utilize this server, however, this server must be running or started by you https://github.com/liamcryan/ieuler-server.
 
 If you are starting fresh, or don't have the problems saved locally, you need to fetch them::
 
     % ilr fetch
 
-This will fetch the problems from Project Euler and Interactive Project Euler.  Interactive Project Euler doesn't exist yet, but will be a server that gets/updates the code and notes you have worked on for a given problem.
+This will fetch the problems from Project Euler and the ieuler-server.  If you don't have the ieuler-server running that's no problem - your problems will be saved to a file locally.  If you do have it running locally, results will be saved to a database...locally.  Also, you will be prompted to log into Project Euler so that you can be authenticated with ieuler-server.
 
 Now that we are set up, let's start solving.  We might want to have an idea of what the problems are.  Let's not list out all of the problems from Project Euler, but feel free to type::
 
@@ -106,7 +111,7 @@ Now that we are set up, let's start solving.  We might want to have an idea of w
         "Description / Title": "Largest prime factor",
     :
 
-You can use the down arrow to continue scrolling through them.  There are 704 right now.  These problems are fetched from Project Euler and stored locally in a file called .problems.
+You can use the down or up arrow to continue scrolling through them.  There are 704 right now.  These problems are fetched from Project Euler and stored locally in a file called .problems.
 
 Now that we have an idea of the problems we might want to work on, let's just pick problem 10 to solve::
 
@@ -208,13 +213,10 @@ If you are finished and would like to send your progress to Interactive Project 
 
     % ilr send
 
-Your progress is saved remotely.  If you want to begin again from another computer or environment, you can pick up where you left off.
+Your progress is saved to the locally running ieuler-server database (if you have it running).  The idea is to run ieuler-server remotely so if you want to begin again from another computer or environment, you can pick up where you left off.
 
-Roadmap
-+++++++
+Finally, it might be a good idea to logout, especially if you are using ieuler-server::
 
-I am playing around with the idea of using ttyd https://github.com/tsl0922/ttyd to make Interactive Project Euler more accessible.  ttyd will let someone access a terminal from a browser.
+    % ilr logout
 
-Create a docker image with the ieuler code, and languages to execute the code.
-
-Create a site called Interactive project euler where people can use this command line tool via the browser.
+The details sent to ieuler-server consist of you username and the cookies from Project Euler.  Even though ieuler-server doesn't save these cookies, logging out might be a good idea because the cookies will no longer be valid on Project Euler.

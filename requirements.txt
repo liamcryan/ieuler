@@ -3,6 +3,6 @@ Pillow
 numpy
 requests
 requests_html
-git+https://github.com/liamcryan/rever
+rever
 pytest
 coverage
