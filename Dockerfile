@@ -20,8 +20,3 @@ RUN echo 'echo "' >> /usr/local/ieuler/.bashrc && ilr >> /usr/local/ieuler/.bash
 
 USER ieuler
 WORKDIR /usr/local/ieuler
-
-ENV IEULER_SERVER_HOST=127.0.0.1
-ENV IEULER_SERVER_PORT=2718
-
-EXPOSE 2718
