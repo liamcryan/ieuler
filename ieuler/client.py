@@ -379,6 +379,9 @@ class Client(object):
         all_problems = self.get_all_problems()
         self.update_problems(all_problems)
 
+    def ping_ipe(self):
+        r = requests.get(f'http://{self.server_host}:{self.server_port}')
+
     @require_login
     def get_from_ipe(self):
         username = self.load_credentials()['username']

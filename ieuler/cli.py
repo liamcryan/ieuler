@@ -111,6 +111,12 @@ def fetch(session, update_from_project_euler, update_from_ieuler_server):
 
     if update_from_ieuler_server:
         try:
+            session.client.ping_ipe()
+        except requests.exceptions.ConnectionError:
+            click.echo('ieuler server is not running.  Cannot fetch.')
+            return
+
+        try:
             ipe_problems = session.client.get_from_ipe()
             click.echo('Fetched problems from ieuler-server successfully.')
             if ipe_problems:
@@ -120,9 +126,6 @@ def fetch(session, update_from_project_euler, update_from_ieuler_server):
             click.echo(e)
         except LoginUnsuccessful as e:
             click.echo(e)
-        except requests.exceptions.ConnectionError:
-            click.echo(
-                f'Unable to get your work from ieuler-server: http://{session.client.server_host}:{session.client.server_port}/')
 
 
 @ilr.command(**context_settings)
@@ -144,22 +147,24 @@ def send(session):
             problem.update({'ID': _['ID']})
             problems.append(problem)
 
-    try:
-        if not problems:
-            click.echo('No work to send.  Try ilr solve.')
-        else:
+    if not problems:
+        click.echo('No work to send.  Try ilr solve.')
+    else:
+        try:
+            session.client.ping_ipe()
+        except requests.exceptions.ConnectionError:
+            click.echo('ieuler server is not running.  Cannot send.')
+            return
+        try:
             r = session.client.send_to_ipe(problems)
             if r:
                 click.echo('Response:')
                 click.echo(json.dumps(r, sort_keys=True, indent=4))
 
-    except BadCaptcha as e:
-        click.echo(e)
-    except LoginUnsuccessful as e:
-        click.echo(e)
-    except requests.exceptions.ConnectionError:
-        click.echo(
-            f'Unable to send your work to ieuler-server: http://{session.client.server_host}:{session.client.server_port}/')
+        except BadCaptcha as e:
+            click.echo(e)
+        except LoginUnsuccessful as e:
+            click.echo(e)
 
 
 @ilr.command(**context_settings)
