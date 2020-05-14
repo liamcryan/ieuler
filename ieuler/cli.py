@@ -136,7 +136,7 @@ def send(session):
         # save problems for which there is code
         if 'code' in _:
             problem.update({'code': _['code']})
-            problem.update({'Solved': _['Solved']})
+            problem.update({'Solved': _.get('Solved')})
             problem.update({'completed_on': _.get('completed_on')})
             problem.update({'correct_answer': _.get('correct_answer')})
 
