@@ -5,6 +5,9 @@ Interactive Project Euler
 Interact with Project Euler https://projecteuler.net/ via the command line.
 
 
+Try it out at https://ieuler.net
+
+
 Features
 ++++++++
 
