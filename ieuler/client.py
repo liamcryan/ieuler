@@ -386,7 +386,8 @@ class Client(object):
     def get_from_ipe(self):
         username = self.load_credentials()['username']
         cookies = self.load_cookies()
-        r = requests.get(f'http://{self.server_host}:{self.server_port}/', auth=(username, json.dumps(cookies)))
+        r = requests.get(f'http://{self.server_host}:{self.server_port}/api/problems',
+                         auth=(username, json.dumps(cookies)))
         if r.status_code == 401:
             raise LoginUnsuccessful('Unable to login to ieuler-server.')
         return r.json()
@@ -395,7 +396,7 @@ class Client(object):
     def send_to_ipe(self, data):
         username = self.load_credentials()['username']
         cookies = self.load_cookies()
-        r = requests.post(f'http://{self.server_host}:{self.server_port}/', json=data,
+        r = requests.post(f'http://{self.server_host}:{self.server_port}/api/problems', json=data,
                           auth=(username, json.dumps(cookies)))
         if r.status_code == 401:
             raise LoginUnsuccessful('Unable to login to ieuler-server.')
