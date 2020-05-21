@@ -268,6 +268,9 @@ def solve(session, problem_number, language, edit):
 
     if edit:
         click.edit(filename=file_name)
+        # we also want to update the problem after they edit it
+        with open(file_name, 'rt') as f:
+            problem['code'][language_template.language]['filecontent'].update(f.read())
 
     # let's update session.client.problems with updated
     session.client.update_problems([problem])
