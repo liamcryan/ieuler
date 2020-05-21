@@ -106,26 +106,26 @@ def login(session):
 @click.pass_obj
 def fetch(session, update_from_project_euler, update_from_ieuler_server):
     """ Fetch the problems from Project Euler & Interactive Project Euler. See config for default server. """
-    if update_from_project_euler:
-        session.client.update_all_problems()
 
     if update_from_ieuler_server:
         try:
             session.client.ping_ipe()
+            try:
+                ipe_problems = session.client.get_from_ipe()
+                click.echo('Fetched problems from ieuler-server successfully.')
+                if ipe_problems:
+                    session.client.update_problems(ipe_problems)
+
+            except BadCaptcha as e:
+                click.echo(e)
+            except LoginUnsuccessful as e:
+                click.echo(e)
+
         except requests.exceptions.ConnectionError:
-            click.echo('ieuler server is not running.  Cannot fetch.')
-            return
+            click.echo('ieuler server is not running.  Cannot fetch from server.')
 
-        try:
-            ipe_problems = session.client.get_from_ipe()
-            click.echo('Fetched problems from ieuler-server successfully.')
-            if ipe_problems:
-                session.client.update_problems(ipe_problems)
-
-        except BadCaptcha as e:
-            click.echo(e)
-        except LoginUnsuccessful as e:
-            click.echo(e)
+    if update_from_project_euler:
+        session.client.update_all_problems()
 
 
 @ilr.command(**context_settings)
