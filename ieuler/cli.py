@@ -130,11 +130,17 @@ def fetch(session, update_from_project_euler, update_from_ieuler_server):
 
 @ilr.command(**context_settings)
 @click.pass_obj
+@click.argument('problem-number', nargs=1, type=int, required=False, default=0)
 @require_fetch
-def send(session):
-    """ Send the problems to Interactive Project Euler.  See config for default server. """
+def send(session, problem_number):
+    """ Send the problem(s) to Interactive Project Euler.  See config for default server. """
     problems = []
-    for _ in session.client.problems:
+    if problem_number == 0:
+        _problems = session.client.problems
+    else:
+        _problems = [session.client.problems[int(problem_number) - 1]]
+
+    for _ in _problems:
         problem = {}
         # save problems for which there is code
         if 'code' in _:
@@ -144,6 +150,7 @@ def send(session):
             problem.update({'correct_answer': _.get('correct_answer')})
 
         if problem:
+            problem.update({'ID': _['ID']})
             problem.update({'ID': _['ID']})
             problems.append(problem)
 
