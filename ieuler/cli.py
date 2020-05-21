@@ -114,6 +114,10 @@ def fetch(session, update_from_project_euler, update_from_ieuler_server):
                 ipe_problems = session.client.get_from_ipe()
                 click.echo('Fetched problems from ieuler-server successfully.')
                 if ipe_problems:
+                    if not session.client.problems:
+                        # don't care if they don't want to fetch from ieuler, they need to because there are no problems
+                        session.client.update_all_problems()
+                        update_from_project_euler = False  # since we just did, don't need to do it again
                     session.client.update_problems(ipe_problems)
 
             except BadCaptcha as e:
