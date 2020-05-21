@@ -9,6 +9,7 @@ venv/
 .cookies
 .credentials
 .problems
+!tests/.problems
 .default-language
 .default-server
 
