@@ -151,7 +151,6 @@ def send(session, problem_number):
 
         if problem:
             problem.update({'ID': _['ID']})
-            problem.update({'ID': _['ID']})
             problems.append(problem)
 
     if not problems:
