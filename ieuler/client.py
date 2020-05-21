@@ -226,8 +226,8 @@ class Client(object):
         if not captcha:
             captcha = self.get_user_input_captcha()
 
-        r = self.session.post(f'https://projecteuler.net/problem={number}',
-                              data={f'guess_{number}': answer, 'captcha': captcha, 'submit_token': submit_token})
+        r = post(self.session, f'https://projecteuler.net/problem={number}',
+                 data={f'guess_{number}': answer, 'captcha': captcha, 'submit_token': submit_token})
 
         captcha_message_element = r.html.find('#message', first=True)
         if captcha_message_element:
