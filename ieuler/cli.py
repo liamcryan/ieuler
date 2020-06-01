@@ -355,7 +355,12 @@ def submit(session, problem_number, dry, language):
     # execute the file
     # get the result from stdout
     command = [submission_language, filename]
-    answer = subprocess.run(command, capture_output=True)
+    try:
+        answer = subprocess.run(command, capture_output=True, timeout=60)
+    except subprocess.TimeoutExpired as e:
+        click.echo(e)
+        return
+
     if answer.returncode != 0:
         click.echo('Oops, there was an error running the file:')
         click.echo(answer.stderr)
