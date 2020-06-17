@@ -17,6 +17,11 @@ class Session(object):
         self.client = Client()
 
 
+@require_login
+def _login(client):
+    pass
+
+
 def require_fetch(func):
     @click.pass_context
     @functools.wraps(func)
@@ -24,7 +29,6 @@ def require_fetch(func):
         ctx = args[0]
         session = args[1]
         if not session.client.problems:
-            ctx.invoke(login)
             ctx.invoke(fetch)
 
         r = func(*args[1:], **kwargs)
@@ -91,13 +95,8 @@ def logout(session):
 def login(session):
     """ Explicitly log in to Project Euler. """
 
-    @require_login
-    def f(client):
-        pass
-
     try:
-        f(session.client)
-        click.echo('Logged in successfully.')
+        _login(session.client)
     except LoginUnsuccessful as e:
         click.echo(e)
 
@@ -108,6 +107,12 @@ def login(session):
 @click.pass_obj
 def fetch(session, update_from_project_euler, update_from_ieuler_server):
     """ Fetch the problems from Project Euler & Interactive Project Euler. See config for default server. """
+
+    try:
+        _login(session.client)
+    except LoginUnsuccessful as e:
+        click.echo(e)
+        return
 
     if update_from_ieuler_server:
         try:
