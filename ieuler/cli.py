@@ -18,14 +18,16 @@ class Session(object):
 
 
 def require_fetch(func):
+    @click.pass_context
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        session = args[0]  # notice i am assuming args[0] will be the session
+        ctx = args[0]
+        session = args[1]
         if not session.client.problems:
-            click.echo('Please fetch problems first.')
-            return
+            ctx.invoke(login)
+            ctx.invoke(fetch)
 
-        r = func(*args, **kwargs)
+        r = func(*args[1:], **kwargs)
         return r
 
     return wrapper
