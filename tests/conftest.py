@@ -39,16 +39,19 @@ def default_client(problems, solved_problem_4):
     ping_ipe = client.ping_ipe
     get_all_problems = client.get_all_problems
     get_from_ipe = client.get_from_ipe
+    logged_in = client.logged_in
 
     client.ping_ipe = MagicMock(return_value=None)
     client.get_all_problems = MagicMock(return_value=problems)
     client.get_from_ipe = MagicMock(return_value=[solved_problem_4])
+    client.logged_in = MagicMock(return_value=True)
 
     yield client
 
     client.ping_ipe = ping_ipe
     client.get_all_problems = get_all_problems
     client.get_from_ipe = get_from_ipe
+    client.logged_in = logged_in
     for _ in d:
         os.close(_[0])
         os.unlink(_[1])
