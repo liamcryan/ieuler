@@ -223,14 +223,13 @@ class Client(object):
                 submit_token = _input.attrs['value']
                 break
 
-        # if not captcha:  # todo do i need this?
-        #     captcha = self.get_user_input_captcha()
+        if not captcha:  # todo do i need this?
+            captcha = self.get_user_input_captcha()
 
         r = post(self.session, f'https://projecteuler.net/problem={number}',
                  data={f'guess_{number}': answer,
-                       # 'captcha': captcha,  # todo do i need this?
+                       'captcha': captcha,  # todo do i need this?
                        'submit_token': submit_token})
-        click.echo(r.text)
 
         captcha_message_element = r.html.find('#message', first=True)
         if captcha_message_element:
