@@ -1,6 +1,5 @@
 import functools
 import json
-import os
 import subprocess
 
 import click
@@ -49,7 +48,8 @@ def ilr(ctx):
 
     Happy trails!
      """
-    ctx.obj = Session()
+    if not ctx.obj:  # we don't want to overwrite the context when testing
+        ctx.obj = Session()
 
 
 @ilr.command(**context_settings)
@@ -140,10 +140,11 @@ def fetch(session, update_from_project_euler, update_from_ieuler_server):
 
 
 @ilr.command(**context_settings)
-@click.pass_obj
+@click.option('--echo/--silent', default=True)
 @click.argument('problem-number', nargs=1, type=int, required=False, default=0)
+@click.pass_obj
 @require_fetch
-def send(session, problem_number):
+def send(session, problem_number, echo):
     """ Send the problem(s) to Interactive Project Euler.  See config for default server. """
     problems = []
     if problem_number == 0:
@@ -170,11 +171,12 @@ def send(session, problem_number):
         try:
             session.client.ping_ipe()
         except requests.exceptions.ConnectionError:
-            click.echo('ieuler server is not running.  Cannot send.')
+            if echo:
+                click.echo('ieuler server is not running.  Cannot send/save to server.')
             return
         try:
             r = session.client.send_to_ipe(problems)
-            if r:
+            if r and echo:
                 click.echo('Response:')
                 click.echo(json.dumps(r, sort_keys=True, indent=4))
 
@@ -216,9 +218,10 @@ def view(session, problem_number):
 @click.option('--edit/--no-edit', default=True)
 @click.option('-language', nargs=1, type=str, default=None, help=f'Choose from: {supported_languages()}')
 @click.argument('problem-number', nargs=1, type=int, required=True)
+@click.pass_context
 @click.pass_obj
 @require_fetch
-def solve(session, problem_number, language, edit):
+def solve(session, ctx, problem_number, language, edit):
     """ Solve a problem in your language of choice.  See config for defaults. """
 
     if not language:
@@ -240,48 +243,29 @@ def solve(session, problem_number, language, edit):
 
     file_name = f'{problem["ID"]}{language_template.extension}'
 
-    # start by getting the code from .problems if it is there
-    # or the default template code if it is not
-    # (we will use the actual file content later if we can)
-
-    # todo test cases:
-    #   code in memory for 1 language
-    #   code in memory for 2 languages
-    #   file exists for 1 language
-    #   file exists for 2 languages
-    #   check combinations of above that resulting session.client.problem is correct
-
-    if problem.get('code'):
-        if problem['code'].get(language_template.language):
-            file_content = problem['code'][language_template.language]['filecontent']
-        else:
-            content_dict = {_: problem[_] for _ in problem if _ in Client.TEMPLATE_FIELDS}
-            content = json.dumps(content_dict, sort_keys=True, indent=4)
-            file_content = language_template.template(content)
-            problem['code'][language_template.language] = {'filename': file_name, 'filecontent': file_content,
-                                                           'submission': None}
-
-    else:
+    if not problem.get('code'):
         content_dict = {_: problem[_] for _ in problem if _ in Client.TEMPLATE_FIELDS}
         content = json.dumps(content_dict, sort_keys=True, indent=4)
-        file_content = language_template.template(content)
         problem['code'] = {
-            language_template.language: {'filename': file_name, 'filecontent': file_content, 'submission': None}}
+            language_template.language: {'filename': file_name,
+                                         'filecontent': language_template.template(content),
+                                         'submission': None}}
 
-    if not os.path.exists(file_name):
+    if not problem['code'].get(language_template.language):
+        content_dict = {_: problem[_] for _ in problem if _ in Client.TEMPLATE_FIELDS}
+        content = json.dumps(content_dict, sort_keys=True, indent=4)
+        problem['code'][language_template.language] = {'filename': file_name,
+                                                       'filecontent': language_template.template(content),
+                                                       'submission': None}
+
+    file_content = problem['code'][language_template.language]['filecontent']
+    try:
         with open(file_name, 'wt') as f:
             f.write(file_content)
-
-    else:
-        # a file exists, let's use this instead
+    except FileExistsError:
         with open(file_name, 'rt') as f:
             file_content = f.read()
-        # now update the filecontent
-        # there will be a code and language_template.language - it was populated above
-        problem['code'][language_template.language].update({'filecontent': file_content})
-
-    # file_content is ready
-    # code has been updated
+            problem['code'][language_template.language].update({'filecontent': file_content})
 
     if edit:
         click.edit(filename=file_name)
@@ -291,6 +275,8 @@ def solve(session, problem_number, language, edit):
 
     # let's update session.client.problems with updated
     session.client.update_problems([problem])
+    # and send to the server
+    ctx.invoke(send, problem_number=problem_number, echo=False)
 
 
 @ilr.command(**context_settings)
@@ -298,16 +284,17 @@ def solve(session, problem_number, language, edit):
 @click.option('--dry/--live', default=False,
               help=f'The --dry option will execute your file but not submit to Project Euler.')
 @click.argument('problem-number', nargs=1, type=int, required=True)
+@click.pass_context
 @click.pass_obj
 @require_fetch
-def submit(session, problem_number, dry, language):
+def submit(session, ctx, problem_number, dry, language):
     """ Execute a file and submit its stdout to Project Euler. """
 
     # look for the code to run in session.self.problems
     problem = session.client.problems[problem_number - 1]
     code = problem.get('code')
     if not code:
-        click.echo('There is no code to run.  Use solve first.')
+        click.echo('There is no code to run.  Use ilr solve first.')
         return
 
     # verify language is in code
@@ -390,7 +377,7 @@ def submit(session, problem_number, dry, language):
     # update code if successful (if execution makes it here)
     code[submission_language].update({'submission': answer})
 
-    if answer == response['correct_answer']:
+    if answer == response['correct_answer'] and answer is not None:
         click.echo('Yay! You did it :)')
         click.echo(f'{response["completed_on"]}')
     else:
@@ -401,3 +388,4 @@ def submit(session, problem_number, dry, language):
 
     problem['code'].update(code)
     session.client.update_problems([problem])
+    ctx.invoke(send, problem_number=problem_number, echo=False)
