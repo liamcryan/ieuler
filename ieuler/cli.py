@@ -342,9 +342,10 @@ def submit(session, ctx, problem_number, dry, language):
     try:
         with open(filename, 'rt') as f:
             code[submission_language].update({'filecontent': f.read()})
+            problem['code'].update(code)
     except FileNotFoundError:
-        pass
-    problem['code'].update(code)
+        with open(filename, 'wt') as f:
+            f.write(code[submission_language]['filecontent'])
 
     session.client.update_problems([problem])
 
