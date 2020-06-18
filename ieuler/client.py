@@ -223,11 +223,14 @@ class Client(object):
                 submit_token = _input.attrs['value']
                 break
 
-        if not captcha:
-            captcha = self.get_user_input_captcha()
+        # if not captcha:  # todo do i need this?
+        #     captcha = self.get_user_input_captcha()
 
         r = post(self.session, f'https://projecteuler.net/problem={number}',
-                 data={f'guess_{number}': answer, 'captcha': captcha, 'submit_token': submit_token})
+                 data={f'guess_{number}': answer,
+                       # 'captcha': captcha,  # todo do i need this?
+                       'submit_token': submit_token})
+        click.echo(r.text)
 
         captcha_message_element = r.html.find('#message', first=True)
         if captcha_message_element:
@@ -386,18 +389,18 @@ class Client(object):
     def get_from_ipe(self):
         username = self.load_credentials()['username']
         cookies = self.load_cookies()
-        r = requests.get(f'http://{self.server_host}:{self.server_port}/api/problems',
-                         auth=(username, json.dumps(cookies)))
+        url = f'http://{self.server_host}:{self.server_port}/api/problems'
+        r = requests.get(url, auth=(username, json.dumps(cookies)))
         if r.status_code == 401:
-            raise LoginUnsuccessful('Unable to login to ieuler-server.')
+            raise LoginUnsuccessful(f'Unable to login to ieuler-server: {url}')
         return r.json()
 
     @require_login
     def send_to_ipe(self, data):
         username = self.load_credentials()['username']
         cookies = self.load_cookies()
-        r = requests.post(f'http://{self.server_host}:{self.server_port}/api/problems', json=data,
-                          auth=(username, json.dumps(cookies)))
+        url = f'http://{self.server_host}:{self.server_port}/api/problems'
+        r = requests.post(url, json=data, auth=(username, json.dumps(cookies)))
         if r.status_code == 401:
-            raise LoginUnsuccessful('Unable to login to ieuler-server.')
+            raise LoginUnsuccessful(f'Unable to login to ieuler-server: {url}')
         return r.json()
