@@ -339,9 +339,11 @@ def submit(session, ctx, problem_number, dry, language):
     filename = f'{problem_number}{language_template.extension}'
 
     # update the filecontent (we want self.problems.problem to be in sync with potential changes to file by user)
-    with open(filename, 'rt') as f:
-        code[submission_language].update({'filecontent': f.read()})
-
+    try:
+        with open(filename, 'rt') as f:
+            code[submission_language].update({'filecontent': f.read()})
+    except FileNotFoundError:
+        pass
     problem['code'].update(code)
 
     session.client.update_problems([problem])
