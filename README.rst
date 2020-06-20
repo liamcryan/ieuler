@@ -85,8 +85,8 @@ There are a few configurations that you might want to check out::
         "credentials": {},
         "language": "python",
         "server": {
-            "host": "127.0.0.1",
-            "port": 5000
+            "host": "ieuler.net",
+            "port": 80
         }
     }
 
