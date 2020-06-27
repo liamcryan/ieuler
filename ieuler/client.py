@@ -42,7 +42,7 @@ def require_login(func):
             else:
                 username, password = credentials['username'], credentials['password']
 
-            self._login(username, password)
+            self.login(username, password)
             # after you login, you can update self.problems
             if not self.logged_in():
                 raise LoginUnsuccessful('Sorry, the username/password is not right.')
@@ -186,7 +186,7 @@ class Client(object):
         password = click.prompt('Please enter your Project Euler password', type=str, hide_input=True)
         return username, password
 
-    def _login(self, username: str, password: str, captcha: Union[str, int] = None):
+    def login(self, username: str, password: str, captcha: Union[str, int] = None):
         if not captcha:
             captcha = self.get_user_input_captcha()
 
