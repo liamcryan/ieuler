@@ -96,8 +96,8 @@ class Client(object):
         self.problems = self.load_problems()
         self.language_template = self.load_language_template() or Python()
 
-        self.server_host = os.getenv('IEULER_SERVER_HOST') or 'http://ieuler.net'
-        self.server_port = os.getenv('IEULER_SERVER_PORT') or 80
+        self.server_host = os.getenv('IEULER_SERVER_HOST') or '127.0.0.1'
+        self.server_port = os.getenv('IEULER_SERVER_PORT') or 2718
         self.server_port = int(self.server_port)
 
         self.session.cookies.update(self.load_cookies())
