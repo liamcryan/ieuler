@@ -199,6 +199,8 @@ class Client(object):
             error_message = r.html.find('#message', first=True).text
             if 'Username not known' in error_message:
                 raise LoginUnsuccessful(f"{error_message}")
+            if 'confirmation code you entered was not valid' in error_message:
+                raise BadCaptcha(f'{error_message}')
             if 'did not enter the confirmation code' in error_message:
                 raise BadCaptcha(f'{error_message}')
 
