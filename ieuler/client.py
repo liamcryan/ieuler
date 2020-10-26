@@ -52,8 +52,9 @@ def require_login(func):
                 json.dump({'username': username, 'password': password}, f)
 
             # now save the cookies (so that we can remain logged in)
-            with open(self.cookies_filename, 'wt') as f:
-                json.dump(self.session.cookies.get_dict(), f)
+            self.dump_cookies(self.session.cookies.get_dict())
+            # with open(self.cookies_filename, 'wt') as f:
+            #     json.dump(self.session.cookies.get_dict(), f)
 
         r = func(*args, **kwargs)
 
@@ -130,6 +131,11 @@ class Client(object):
                 return json.load(f)
         except (FileNotFoundError, json.decoder.JSONDecodeError):
             return {}
+
+    def dump_cookies(self, cookies: Dict):
+        # now save the cookies (so that we can remain logged in)
+        with open(self.cookies_filename, 'wt') as f:
+            json.dump(cookies, f)
 
     def load_problems(self):
         try:
