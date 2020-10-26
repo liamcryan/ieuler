@@ -79,6 +79,10 @@ class LoginUnsuccessful(Exception):
     pass
 
 
+class UnknownLoginError(Exception):
+    pass
+
+
 class Client(object):
     INHERENT_FIELDS = ('ID', 'Description / Title', 'Solved By', 'problem_url', 'page_url',)
     TEMPLATE_FIELDS = ('ID', 'Description / Title', 'problem_url', 'page_url', 'Problem',)
@@ -189,20 +193,27 @@ class Client(object):
     def login(self, username: str, password: str, captcha: Union[str, int] = None):
         if not captcha:
             captcha = self.get_user_input_captcha()
-
+        r0 = self.session.get('https://projecteuler.net/sign_in')
+        csrf = r0.html.find('form[name="sign_in_form"]>[name="csrf_token"]', first=True).attrs['value']
         r = post(self.session, 'https://projecteuler.net/sign_in', {'username': username,
                                                                     'password': password,
                                                                     'captcha': captcha,
-                                                                    'sign_in': 'Sign In'})
+                                                                    'sign_in': 'Sign In',
+                                                                    'csrf_token': csrf})
 
         if r.url != 'https://projecteuler.net/archives':
-            error_message = r.html.find('#message', first=True).text
-            if 'Username not known' in error_message:
-                raise LoginUnsuccessful(f"{error_message}")
-            if 'confirmation code you entered was not valid' in error_message:
-                raise BadCaptcha(f'{error_message}')
-            if 'did not enter the confirmation code' in error_message:
-                raise BadCaptcha(f'{error_message}')
+            warning = r.html.find('[class="warning"]', first=True)
+            if warning:
+                warning = warning.text
+                if 'Username not known' in warning or 'Incorrect password' in warning:
+                    raise LoginUnsuccessful(f"{warning}")
+                if 'confirmation code you entered was not valid' in warning:
+                    raise BadCaptcha(f'{warning}')
+                if 'did not enter the confirmation code' in warning:
+                    raise BadCaptcha(f'{warning}')
+                raise UnknownLoginError('Unknown error logging in - investigate')
+            else:
+                raise UnknownLoginError('Unable to locate error logging in - investigate.')
 
     @require_login
     def submit(self, number, answer, captcha: Union[str, int] = None):
