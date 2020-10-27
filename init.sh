@@ -14,7 +14,7 @@ if [ "$#" -lt 1 ]
 then
   ilr fetch --anonymous
 else
-  python -c "from ieuler.client import Client;c = Client();c.dump_cookies(${1#'cookies'})"
+  python3 -c "from ieuler.client import Client;c = Client();c.dump_cookies(${1#'cookies'})"
   ilr fetch
 fi
 ilr --help
