@@ -16,7 +16,8 @@ RUN apt-get update -y \
 RUN useradd -ms /bin/bash -d /usr/local/ieuler ieuler \
     && chown -R ieuler: /usr/local/ieuler
 
-RUN echo 'echo "' >> /usr/local/ieuler/.bashrc && ilr >> /usr/local/ieuler/.bashrc && echo '"' >> /usr/local/ieuler/.bashrc
-
 USER ieuler
+
+COPY ./init.sh /usr/local/ieuler/init.sh
+
 WORKDIR /usr/local/ieuler
