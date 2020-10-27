@@ -16,7 +16,6 @@ then
 else
   python -c "from ieuler.client import Client;c = Client();c.dump_cookies(${1#'cookies'})"
   ilr fetch
-  ilr --help
 fi
-
+ilr --help
 /bin/bash
