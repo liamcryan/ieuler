@@ -38,13 +38,13 @@ Or you can use Docker after cloning this repo::
     ...
     ...
     % cd ieuler
-    % docker-compose build
-    % docker-compose run --rm ieuler
+    % docker build --tag ieuler .
+    % docker run --rm -it ieuler
 
 Or pull from dockerhub::
 
     % docker pull liamcryan/ieuler
-    % docker run -it --rm liamcryan/ieuler bash
+    % docker run -it --rm liamcryan/ieuler
 
 Quickstart
 ++++++++++
