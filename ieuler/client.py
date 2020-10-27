@@ -47,7 +47,7 @@ def require_login(func):
             self.login(username, password)
 
             logged_in = self.logged_in(username=username, cookies=cookies)
-            if not logged_in():
+            if not logged_in:
                 raise LoginUnsuccessful('Sorry, the username/password is not right.')
 
             # save the username and password (so we don't have to keep asking)
