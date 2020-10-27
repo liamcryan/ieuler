@@ -34,8 +34,10 @@ def require_login(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         self = args[0]
-        if not self.logged_in():
-            credentials = self.load_credentials()
+        credentials = self.load_credentials()
+        cookies = self.load_cookies()
+        logged_in = self.logged_in(username=credentials.get('username'), cookies=cookies)
+        if not logged_in:
             if not credentials:
                 click.confirm('A login is required.  Would you like to continue?', abort=True)
                 username, password = self.get_user_input_credentials()
@@ -43,18 +45,16 @@ def require_login(func):
                 username, password = credentials['username'], credentials['password']
 
             self.login(username, password)
-            # after you login, you can update self.problems
-            if not self.logged_in():
+
+            logged_in = self.logged_in(username=username, cookies=cookies)
+            if not logged_in():
                 raise LoginUnsuccessful('Sorry, the username/password is not right.')
 
             # save the username and password (so we don't have to keep asking)
-            with open(self.credentials_filename, 'wt') as f:
-                json.dump({'username': username, 'password': password}, f)
+            self.dump_credentials({'username': username, 'password': password})
 
             # now save the cookies (so that we can remain logged in)
             self.dump_cookies(self.session.cookies.get_dict())
-            # with open(self.cookies_filename, 'wt') as f:
-            #     json.dump(self.session.cookies.get_dict(), f)
 
         r = func(*args, **kwargs)
 
@@ -133,7 +133,6 @@ class Client(object):
             return {}
 
     def dump_cookies(self, cookies: Dict):
-        # now save the cookies (so that we can remain logged in)
         with open(self.cookies_filename, 'wt') as f:
             json.dump(cookies, f)
 
@@ -150,6 +149,10 @@ class Client(object):
                 return json.load(f)
         except (FileNotFoundError, json.decoder.JSONDecodeError):
             return {}
+
+    def dump_credentials(self, credentials: Dict):
+        with open(self.credentials_filename, 'wt') as f:
+            json.dump(credentials, f)
 
     def logged_in(self, username: str = None, cookies: Dict = None):
 
