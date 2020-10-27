@@ -104,15 +104,17 @@ def login(session):
 @ilr.command(**context_settings)
 @click.option('--update-from-project-euler/--skip-pe-update', default=True)
 @click.option('--update-from-ieuler-server/--skip-ipe-update', default=True)
+@click.option('--as-user/--anonymous', default=True)
 @click.pass_obj
-def fetch(session, update_from_project_euler, update_from_ieuler_server):
+def fetch(session, as_user, update_from_project_euler, update_from_ieuler_server):
     """ Fetch the problems from Project Euler & Interactive Project Euler. See config for default server. """
 
-    try:
-        _login(session.client)
-    except LoginUnsuccessful as e:
-        click.echo(e)
-        return
+    if as_user:
+        try:
+            _login(session.client)
+        except LoginUnsuccessful as e:
+            click.echo(e)
+            return
 
     if update_from_ieuler_server:
         try:
@@ -133,7 +135,7 @@ def fetch(session, update_from_project_euler, update_from_ieuler_server):
                 click.echo(e)
 
         except requests.exceptions.ConnectionError:
-            click.echo('ieuler server is not running.  Cannot fetch from server.')
+            click.echo('ieuler server is not running.')
 
     if update_from_project_euler:
         session.client.update_all_problems()
