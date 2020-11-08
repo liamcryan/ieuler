@@ -230,32 +230,22 @@ class Client(object):
         # it is possible you already solved this problem
 
         r = self.session.get(f'https://projecteuler.net/problem={number}')
-        form_e = r.html.find('form', first=True)
+        form_e = r.html.find('form[name="form"]', first=True)
         completed = form_e.text
         if 'Completed' in completed:
             # note don't include keys we don't want updated so they don't update good data
-            return {'correct_answer': form_e.find('b', first=True).text,
-                    'completed_on': form_e.find('span', first=True).text,
+            return {'correct_answer': re.search(r'Answer:\s*([0-9]*)', completed).group(1),
+                    'completed_on': re.search(r'Completed\son.*', completed).group(0),
                     'Solved': True}
 
-        submit_token = None
-        input_e = form_e.find('input')
-        for _input in input_e:
-            if _input.attrs.get('name') == 'submit_token':
-                submit_token = _input.attrs['value']
-                break
-
-        if not captcha:  # todo do i need this?
-            captcha = self.get_user_input_captcha()
-
+        csrf = r.html.find('form[name="form"]', first=True).find('input[name="csrf_token"]', first=True).attrs['value']
         r = post(self.session, f'https://projecteuler.net/problem={number}',
                  data={f'guess_{number}': answer,
-                       'captcha': captcha,  # todo do i need this?
-                       'submit_token': submit_token})
+                       'csrf_token': csrf})
 
-        captcha_message_element = r.html.find('#message', first=True)
-        if captcha_message_element:
-            raise BadCaptcha(captcha_message_element.text)
+        error_message_element = r.html.find('#message', first=True)
+        if error_message_element:
+            raise BadCaptcha(error_message_element.text)
 
         # or it is possible you failed to solve it
         p_es = r.html.find('p')
