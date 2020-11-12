@@ -12,6 +12,8 @@ if [ "$#" -lt 1 ]
 then
   ilr fetch --anonymous
 else
+  echo "cookies arg: ${1#'cookies'}"
+  echo "credentials arg: ${2#'credentials'}"
   python3 -c "from ieuler.client import Client;c = Client();c.dump_cookies(${1#'cookies'});c.dump_credentials(${2#'credentials'})"
   ilr fetch
 fi
